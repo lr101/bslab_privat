@@ -9,7 +9,7 @@
 
 //TODO Constructor
 
-File::File(char *name, size_t size, char *data, int userID, int mode) {
+File::File(char *name, size_t size, char *data, int userID, int groupID, int mode) {
     //initialize name_size
     this->name_size = std::strlen(name);
 
@@ -29,6 +29,9 @@ File::File(char *name, size_t size, char *data, int userID, int mode) {
 
     //initialize userID
     this->userID = userID;
+
+    //initialize userID
+    this->groupID = groupID;
 
     //initialize mode
     this->mode = mode;
@@ -52,7 +55,3 @@ void File::deepCopy(char *from, char *to, size_t pSize) {
 }
 
 
-//TODO file methods here
-void File::copy() {
-    //TODO
-}
