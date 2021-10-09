@@ -47,6 +47,11 @@ public:
     std::time_t getMTime();
     std::time_t getCTime();
     bool isOpen();
+
+    void append(size_t size, char* data);
+    void insert(size_t size, char* data, off_t offset);
+
+    char* getData(off_t offset);
 };
 
 #endif //MYFS_FILE_H

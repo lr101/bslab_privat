@@ -5,13 +5,15 @@
 #include "file.h"
 
 File::File(char *name, size_t size, char *data, int userID, int mode) {
-    this->nameSize = std::strlen(name);     //TODO Do we want to exclude '\0'
+    this->nameSize = std::strlen(name);
     if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
     this->name = new char[this->nameSize + 1];
     std::memcpy(this->name, name, this->nameSize + 1);
+
     this->size = size;
     this->data = new char[this->size];
     std::memcpy(this->data, data, size);
+
     this->userID = userID;
     this->mode = mode;
     setATime();
@@ -115,4 +117,21 @@ std::time_t File::getCTime() {
 
 bool File::isOpen() {
     return open;
+}
+
+void File::append(size_t size, char* data) {
+    size_t oldSize = this->size;
+    setSize(size);
+    std::memcpy(this->data + oldSize, data, size);
+}
+
+void File::insert(size_t size, char* data, off_t offset) {
+    if (offset > this->size) throw std::system_error(EINVAL, std::generic_category(), "Offset needs to be smaller or equal to data size");
+    setSize(this->size + size);
+    std::memcpy(this->data + offset + size, this->data + offset, size);
+    std::memcpy(this->data + offset, data, size);
+}
+
+char* File::getData(off_t offset) {
+    return this->data + offset;
 }
