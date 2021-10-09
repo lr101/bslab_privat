@@ -2,30 +2,24 @@
 // Created by lukas on 08.10.21.
 //
 
-#include <file.h>
-#include <cstring>
-#include "myfs-structs.h"
-
-
-//TODO Constructor
+#include "file.h"
 
 File::File(char *name, size_t size, char *data, int userID, int mode) {
     //initialize name_size
-    this->name_size = std::strlen(name);
+    this->nameSize = std::strlen(name);     //TODO Do we want to include '\0'
 
-    //initialize name (deep copy)
-    if (this->name_size <= NAME_LENGTH) {
-        deepCopy(name, this->name, name_size + 1);
-        name[name_size] = '\0';
-    } else {
-        //TODO ERROR
-    }
+    //initialize name
+    if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL
+                                                              , std::generic_category()
+                                                              , "File name too long");
+    this->name = new char[this->nameSize + 1];
+    std::memcpy(this->name, name, this->nameSize + 1);
 
     //initialize size
-    this->size = size; //TODO as bytes?
+    this->size = size;
 
     //initialize data
-    deepCopy(data, this->data, size);
+    std::memcpy(this->data, data, size);
 
     //initialize userID
     this->userID = userID;
@@ -44,15 +38,26 @@ File::~File() {
     delete[] name;
 }
 
-void File::deepCopy(char *from, char *to, size_t pSize) {
-    to = new char[pSize];
-    for(int i = 0; i < pSize; i++, from++, to++) {
-        *to = *from;
-    }
+File::File(const File &other) {
+    nameSize = other.nameSize;
+    size = other.size;
+    userID = other.userID;
+    mode = other.mode;
+    atime = other.atime;
+    mtime = other.mtime;
+    ctime = other.ctime;
+    open = other.open;
+
+    name = new char[nameSize];
+    std::memcpy(name, other.name, nameSize);
+
+    data = new char[size];
+    std::memcpy(data, other.data, size);
 }
 
-
-//TODO file methods here
-void File::copy() {
-    //TODO
+File &File::operator=(const File &other) {
+    if (this == &other) return *this;
+    delete[] name;
+    delete[] data;
+    return *this = File(other);
 }

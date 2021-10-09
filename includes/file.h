@@ -1,16 +1,20 @@
 //
-// Created by user on 08.10.21.
+// Created by lukas on 08.10.21.
 //
 
 #ifndef MYFS_FILE_H
 #define MYFS_FILE_H
+
 #include <ctime>
+#include <cstring>
+#include <errno.h>
+#include <system_error>
+
+#include "myfs-structs.h"
 
 class File {
-    //File attributes
-private:
-    char* name; //Including file path
-    unsigned int name_size;
+    char* name;                 ///< Path to file
+    unsigned short nameSize;
     size_t size;
     int userID;
     int mode;
@@ -18,14 +22,13 @@ private:
     std::time_t mtime;
     std::time_t ctime;
     char* data;
-    bool open = false; //TODO brauen wir das?
-    static void deepCopy(char* from, char* to, size_t pSize);
+    bool open = false;
 
 public:
     File(char* name, size_t size, char* data, int userID, int mode);
     ~File();
-    //TODO File methods:
-    void copy();
+    File(const File&);
+    File& operator=(const File&);
 
 };
 
