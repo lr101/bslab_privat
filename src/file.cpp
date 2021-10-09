@@ -54,10 +54,3 @@ File::File(const File &other) {
     data = new char[size];
     std::memcpy(data, other.data, size);
 }
-
-File &File::operator=(const File &other) {
-    if (this == &other) return *this;
-    delete[] name;
-    delete[] data;
-    return *this = File(other);
-}

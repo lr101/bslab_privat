@@ -14,22 +14,24 @@
 
 class File {
     char* name;                 ///< Path to file
-    unsigned short nameSize;
-    size_t size;
-    int userID;
-    int mode;
-    std::time_t atime;
-    std::time_t mtime;
-    std::time_t ctime;
-    char* data;
-    bool open = false;
+    unsigned short nameSize;    ///< Current path length excluding null character
+    size_t size;                ///< Size of data block
+    int userID;                 ///< User identifier
+    int mode;                   ///< Access authorizations
+    std::time_t atime;          ///< Time of last access
+    std::time_t mtime;          ///< Time of last change
+    std::time_t ctime;          ///< Time of last status change
+    char* data;                 ///< File content
+    bool open = false;          ///< True if file is open
 
 public:
     File(char* name, size_t size, char* data, int userID, int mode);
     ~File();
     File(const File&);
-    File& operator=(const File&);
 
+    std::time_t setAtime();
+    std::time_t setMtime();
+    std::time_t setCtime();
 };
 
 #endif //MYFS_FILE_H
