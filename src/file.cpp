@@ -56,7 +56,7 @@ File::File(const File &other) {
 /// \param name New path to file.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
 void File::setName(char *name) {
-    unsigned short nameSize = std::strlen(name);
+    size_t nameSize = std::strlen(name);
     if (nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
     delete[] name;
     this->nameSize = nameSize;
