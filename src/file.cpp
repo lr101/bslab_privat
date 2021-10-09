@@ -5,32 +5,18 @@
 #include "file.h"
 
 File::File(char *name, size_t size, char *data, int userID, int mode) {
-    //initialize name_size
-    this->nameSize = std::strlen(name);     //TODO Do we want to include '\0'
-
-    //initialize name
-    if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL
-                                                              , std::generic_category()
-                                                              , "File name too long");
+    this->nameSize = std::strlen(name);     //TODO Do we want to exclude '\0'
+    if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
     this->name = new char[this->nameSize + 1];
     std::memcpy(this->name, name, this->nameSize + 1);
-
-    //initialize size
     this->size = size;
-
-    //initialize data
+    this->data = new char[this->size];
     std::memcpy(this->data, data, size);
-
-    //initialize userID
     this->userID = userID;
-
-    //initialize mode
     this->mode = mode;
-
-    //initialize times
-    this->atime = std::time(nullptr);
-    this->mtime = std::time(nullptr);
-    this->ctime = std::time(nullptr);
+    setATime();
+    setMTime();
+    setCTime();
 }
 
 File::~File() {
@@ -53,4 +39,80 @@ File::File(const File &other) {
 
     data = new char[size];
     std::memcpy(data, other.data, size);
+}
+
+void File::setName(char *name) {
+    unsigned short nameSize = std::strlen(name);
+    if (nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
+    delete[] name;
+    this->nameSize = nameSize;
+    this->name = new char[this->nameSize];
+    std::memcpy(this->name, name, this->nameSize + 1);
+}
+
+void File::setSize(size_t size) {
+    this->size = size;
+    std::realloc(this->data, this->size);
+}
+
+void File::setUserID(int userID) {
+    this->userID = userID;
+}
+
+void File::setMode(int mode) {
+    this->mode = mode;
+}
+
+void File::setATime() {
+    this->atime = std::time(nullptr);
+}
+
+void File::setMTime() {
+    this->mtime = std::time(nullptr);
+}
+
+void File::setCTime() {
+    this->ctime = std::time(nullptr);
+}
+
+void File::setOpen() {
+    if (this->open) throw std::system_error(EINVAL, std::generic_category(), "File already opened");
+    this->open = true;
+}
+
+void File::setClose() {
+    if (!this->open) throw std::system_error(EINVAL, std::generic_category(), "File already closed");
+    this->open = false;
+}
+
+char* File::getName() {
+    return name;
+}
+
+size_t File::getSize() {
+    return size;
+}
+
+int File::getUserID() {
+    return userID;
+}
+
+int File::getMode() {
+    return mode;
+}
+
+std::time_t File::getATime() {
+    return atime;
+}
+
+std::time_t File::getMTime() {
+    return mtime;
+}
+
+std::time_t File::getCTime() {
+    return ctime;
+}
+
+bool File::isOpen() {
+    return open;
 }

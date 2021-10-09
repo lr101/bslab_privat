@@ -29,9 +29,24 @@ public:
     ~File();
     File(const File&);
 
-    std::time_t setAtime();
-    std::time_t setMtime();
-    std::time_t setCtime();
+    void setName(char*);
+    void setSize(size_t);
+    void setUserID(int);
+    void setMode(int);
+    void setATime();
+    void setMTime();
+    void setCTime();
+    void setOpen();
+    void setClose();
+
+    char* getName();
+    size_t getSize();
+    int getUserID();
+    int getMode();
+    std::time_t getATime();
+    std::time_t getMTime();
+    std::time_t getCTime();
+    bool isOpen();
 };
 
 #endif //MYFS_FILE_H
