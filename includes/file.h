@@ -2,8 +2,7 @@
 // Created by lukas on 08.10.21.
 //
 
-#ifndef MYFS_FILE_H
-#define MYFS_FILE_H
+#pragma once
 
 #include <ctime>
 #include <cstring>
@@ -14,10 +13,10 @@
 
 class File {
     char* name;                 ///< Path to file
-    unsigned short nameSize;    ///< Current path length excluding null character
+    size_t nameSize;            ///< Current path length excluding null character
     size_t size;                ///< Size of data block
     int userID;                 ///< User identifier
-    int mode;                   ///< Access authorizations
+    int mode;                   ///< Permissions for file access
     std::time_t atime;          ///< Time of last access
     std::time_t mtime;          ///< Time of last change
     std::time_t ctime;          ///< Time of last status change
@@ -53,5 +52,3 @@ public:
 
     char* getData(off_t offset);
 };
-
-#endif //MYFS_FILE_H
