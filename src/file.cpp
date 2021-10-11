@@ -177,19 +177,18 @@ bool File::isOpen() {
 /// \param data Pointer to the new data.
 void File::append(size_t size, char* data) {
     size_t oldSize = this->size;
-    setSize(size);
+    setSize(this->size + size);
     std::memcpy(this->data + oldSize, data, size);
 }
 
-/// Insert a new data block at any point of the existing data.
+/// Override a part of the data block with new data.
 /// \param size Size of the new data.
 /// \param data Pointer to the new data.
-/// \param offset Point at which new data is to be inserted.
-/// \throws EINVAL If offset is greater than existing data size.
-void File::insert(size_t size, char* data, off_t offset) {
-    if (offset > this->size) throw std::system_error(EINVAL, std::generic_category(), "Offset can't be greater than data size");
-    setSize(this->size + size);
-    std::memcpy(this->data + offset + size, this->data + offset, size);
+/// \param offset Offset to the location to write the data to.
+void File::write(size_t size, char* data, off_t offset) {
+    if (size + offset > this->size) {
+        setSize(size + offset);
+    }
     std::memcpy(this->data + offset, data, size);
 }
 

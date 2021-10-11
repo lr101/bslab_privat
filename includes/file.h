@@ -51,7 +51,7 @@ public:
     bool isOpen();
 
     void append(size_t size, char* data);
-    void insert(size_t size, char* data, off_t offset);
+    void write(size_t size, char* data, off_t offset);
 
     char* getData(off_t offset);
 };
