@@ -77,6 +77,12 @@ void File::setUserID(int userID) {
     this->userID = userID;
 }
 
+/// Change the user identification.
+/// \param groupID New group id.
+void File::setGroupID(int groupID) {
+    this->groupID = groupID;
+}
+
 /// Change the permissions for file access.
 /// \param mode New permissions.
 void File::setMode(int mode) {
@@ -128,6 +134,12 @@ size_t File::getSize() {
 /// \return User identification.
 int File::getUserID() {
     return userID;
+}
+
+/// Get the group id.
+/// \return Group identification.
+int File::getGroupID() {
+    return groupID;
 }
 
 /// Get the permissions for file access.

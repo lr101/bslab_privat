@@ -16,6 +16,7 @@ class File {
     size_t nameSize;            ///< Current path length excluding null character
     size_t size;                ///< Size of data block
     int userID;                 ///< User identifier
+    int groupID;                ///< Group identifier
     int mode;                   ///< Permissions for file access
     std::time_t atime;          ///< Time of last access
     std::time_t mtime;          ///< Time of last change
@@ -31,6 +32,7 @@ public:
     void setName(char*);
     void setSize(size_t);
     void setUserID(int);
+    void setGroupID(int);
     void setMode(int);
     void setATime();
     void setMTime();
@@ -41,6 +43,7 @@ public:
     char* getName();
     size_t getSize();
     int getUserID();
+    int getGroupID();
     int getMode();
     std::time_t getATime();
     std::time_t getMTime();
