@@ -186,6 +186,7 @@ void File::append(size_t size, char* data) {
 /// \param data Pointer to the new data.
 /// \param offset Offset to the location to write the data to.
 void File::write(size_t size, char* data, off_t offset) {
+    if (offset > this->size) throw std::system_error(EINVAL, std::generic_category(), "Offset can't be greater than data size");
     if (size + offset > this->size) {
         setSize(size + offset);
     }
