@@ -11,7 +11,7 @@
 /// \param userID User identification.
 /// \param mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-File::File(char *name, size_t size, char *data, int userID, int mode) {
+File::File(char *name, size_t size, char *data, int userID, int groupID, int mode) {
     this->nameSize = std::strlen(name);
     if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
     this->name = new char[this->nameSize + 1];
@@ -22,6 +22,7 @@ File::File(char *name, size_t size, char *data, int userID, int mode) {
     std::memcpy(this->data, data, size);
 
     this->userID = userID;
+    this->groupID = groupID;
     this->mode = mode;
     setATime();
     setMTime();
@@ -39,6 +40,7 @@ File::File(const File &other) {
     nameSize = other.nameSize;
     size = other.size;
     userID = other.userID;
+    groupID = other.groupID;
     mode = other.mode;
     atime = other.atime;
     mtime = other.mtime;

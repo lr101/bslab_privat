@@ -25,7 +25,7 @@ class File {
     bool open = false;          ///< True if file is open
 
 public:
-    File(char* name, size_t size, char* data, int userID, int mode);
+    File(char* name, size_t size, char* data, int userID, int groupID, int mode);
     ~File();
     File(const File&);
 
@@ -39,6 +39,8 @@ public:
     void setCTime();
     void setOpen();
     void setClose();
+    void append(size_t size, char* data);
+    void write(size_t size, char* data, off_t offset);
 
     char* getName();
     size_t getSize();
@@ -49,9 +51,5 @@ public:
     std::time_t getMTime();
     std::time_t getCTime();
     bool isOpen();
-
-    void append(size_t size, char* data);
-    void write(size_t size, char* data, off_t offset);
-
     char* getData(off_t offset);
 };
