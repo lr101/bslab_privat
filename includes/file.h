@@ -29,6 +29,7 @@ public:
     ~File();
     File(const File&);
 
+
     int setName(char*);
     int setSize(size_t);
     int setUserID(uid_t);
@@ -54,3 +55,4 @@ public:
     int getData(off_t offset, char*);
     int getMetadata(struct stat *statbuf);
 };
+

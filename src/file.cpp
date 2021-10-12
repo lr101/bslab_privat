@@ -29,6 +29,7 @@ File::File(char *name, size_t size, char *data, uid_t st_uid, gid_t st_gid, mode
     setCTime();
 }
 
+
 File::~File() {
     delete[] data;
     delete[] name;
@@ -226,6 +227,7 @@ int File::getData(off_t offset, char* data) {
     *data = *(this->data + offset);
     return 0;
 }
+
 
 int File::getMetadata(struct stat *statbuf) {
     //TODO
