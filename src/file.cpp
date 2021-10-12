@@ -9,6 +9,7 @@
 /// \param size Size of data block.
 /// \param data Data to be stored.
 /// \param st_uid User identification.
+/// \param st_gid Group identification.
 /// \param st_mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
 File::File(char *name, size_t size, char *data, uid_t st_uid, gid_t st_gid, mode_t st_mode) {
@@ -56,7 +57,7 @@ File::File(const File &other) {
 
 /// Change the path to the file.
 /// \param name New path to file.
-/// \returns EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
+/// \returns 0 on success, -EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
 int File::setName(char *name) {
     size_t nameSize = std::strlen(name);
     if (nameSize > NAME_LENGTH) return -EINVAL;
@@ -69,6 +70,7 @@ int File::setName(char *name) {
 
 /// Change the size of the data block.
 /// \param size New data size.
+/// \returns 0 on success
 int File::setSize(size_t size) {
     this->size = size;
     std::realloc(this->data, this->size);
@@ -77,13 +79,15 @@ int File::setSize(size_t size) {
 
 /// Change the user identification.
 /// \param st_uid New user id.
+/// \returns 0 on success
 int File::setUserID(uid_t st_uid) {
     this->st_uid = st_uid;
     return 0;
 }
 
-/// Change the user identification.
+/// Change the group identification.
 /// \param st_gid New group id.
+/// \returns 0 on success
 int File::setGroupID(gid_t st_gid) {
     this->st_gid = st_gid;
     return 0;
@@ -91,31 +95,35 @@ int File::setGroupID(gid_t st_gid) {
 
 /// Change the permissions for file access.
 /// \param st_mode New permissions.
+/// \returns 0 on success
 int File::setMode(mode_t st_mode) {
     this->st_mode = st_mode;
     return 0;
 }
 
 /// Update the time of last access to current time.
+/// \returns 0 on success
 int File::setATime() {
     this->atime = std::time(nullptr);
     return 0;
 }
 
 /// Update the time of last change to current time.
+/// \returns 0 on success
 int File::setMTime() {
     this->mtime = std::time(nullptr);
     return 0;
 }
 
 /// Update the time of last status change to current time.
+/// \returns 0 on success
 int File::setCTime() {
     this->ctime = std::time(nullptr);
     return 0;
 }
 
 /// Open the file.
-/// \returns EINVAL If the file is already open.
+/// \returns 0 on success, -EINVAL If the file is already open.
 int File::setOpen() {
     if (this->open) return -EINVAL;
     this->open = true;
@@ -123,7 +131,7 @@ int File::setOpen() {
 }
 
 /// Close the file.
-/// \returns EINVAL If the file is already closed.
+/// \returns 0 on success, -EINVAL If the file is already closed.
 int File::setClose() {
     if (!this->open) return -EINVAL;
     this->open = false;
@@ -131,7 +139,8 @@ int File::setClose() {
 }
 
 /// Get the file path.
-/// \return Pointer to name.
+/// \param [out] name pointer containing file name
+/// \returns 0 on success
 int File::getName(char* name) {
     name = new char [this->nameSize + 1];
     std::strcpy(name, this->name);
@@ -139,56 +148,64 @@ int File::getName(char* name) {
 }
 
 /// Get the data size.
-/// \return Size of data block.
+/// \param [out] size pointer containing file size
+/// \returns 0 on success
 int File::getSize(size_t* size) {
     *size = this->size;
     return 0;
 }
 
 /// Get the user id.
-/// \return User identification.
+/// \param [out] st_uid pointer containing user identification
+/// \returns 0 on success
 int File::getUserID(uid_t* st_uid) {
     *st_uid = this->st_uid;
     return 0;
 }
 
 /// Get the group id.
-/// \return Group identification.
+/// \param [out] st_gid pointer containing group identification
+/// \returns 0 on success
 int File::getGroupID(gid_t* st_gid) {
     *st_gid = this->st_gid;
     return 0;
 }
 
 /// Get the permissions for file access.
-/// \return File permissions.
+/// \param [out] st_mode pointer containing user mode
+/// \returns 0 on success
 int File::getMode(mode_t* st_mode) {
     *st_mode = this-> st_mode;
     return 0;
 }
 
 /// Get the time of last access.
-/// \return Last access.
+/// \param [out] atime pointer containing time of last access
+/// \returns 0 on success
 int File::getATime(std::time_t* atime) {
     *atime = this->atime;
     return 0;
 }
 
 /// Get the time of last change.
-/// \return Last change.
+/// \param [out] mtime pointer containing time of last change
+/// \returns 0 on success
 int File::getMTime(std::time_t* mtime) {
     *mtime = this->mtime;
     return 0;
 }
 
 /// Get the time of last status change.
-/// \return Last status change.
+/// \param [out] ctime pointer containing last status change
+/// \returns 0 on success
 int File::getCTime(std::time_t* ctime) {
     *ctime = this->ctime;
     return 0;
 }
 
 /// Get whether the file is open.
-/// \return True if file is open, otherwise false.
+/// \param [out] open pointer containing whether file is open (true = open, false = closed)
+/// \returns 0 on success
 int File::isOpen(bool* open) {
     *open = this->open;
     return 0;
@@ -197,6 +214,7 @@ int File::isOpen(bool* open) {
 /// Append a new data block to the existing one.
 /// \param size Size of the new data.
 /// \param data Pointer to the new data.
+/// \returns 0 on success
 int File::append(size_t size, char* data) {
     size_t oldSize = this->size;
     setSize(this->size + size);
@@ -208,6 +226,7 @@ int File::append(size_t size, char* data) {
 /// \param size Size of the new data.
 /// \param data Pointer to the new data.
 /// \param offset Offset to the location to write the data to.
+/// \returns 0 on success
 int File::write(size_t size, char* data, off_t offset) {
     if (offset > this->size) return -EINVAL;
     if (size + offset > this->size) {
@@ -220,13 +239,15 @@ int File::write(size_t size, char* data, off_t offset) {
 /// Get a pointer to the data with offset.
 /// \param offset Offset from the beginning of the data.
 /// \return Pointer to the specified part of the data.
-/// \returns EINVAL If offset is greater than existing data size.
+/// \returns 0 on success, -EINVAL If offset is greater than existing data size.
 int File::getData(off_t offset, char* data) {
     if (offset > this->size) return -EINVAL;
     *data = *(this->data + offset);
     return 0;
 }
-
+/// Get the metadata of a file (user & group id, modification times, permissions, ...).
+/// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
+/// \returns 0 on success
 int File::getMetadata(struct stat *statbuf) {
     //TODO
     return 0;
