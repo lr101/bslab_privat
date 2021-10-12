@@ -1,44 +1,58 @@
 //
-// Created by user on 08.10.21.
+// Created by lukas on 08.10.21.
 //
 
-#ifndef MYFS_FILE_H
-#define MYFS_FILE_H
+#pragma once
+
 #include <ctime>
+#include <cstring>
+#include <errno.h>
+#include <system_error>
+
+#include "myfs-structs.h"
 
 class File {
-    //File attributes
-private:
-    char* name; //Including file path
-    unsigned int name_size;
-    size_t size;
-    int userID;
-    int groupID;
-    int mode;
-    std::time_t atime;
-    std::time_t mtime;
-    std::time_t ctime;
-    char* data;
-    bool open = false;
-    static void deepCopy(char* from, char* to, size_t pSize);
+    char* name;                 ///< Path to file
+    size_t nameSize;            ///< Current path length excluding null character
+    size_t size;                ///< Size of data block
+    uid_t st_uid;               ///< User identifier
+    gid_t st_gid;               ///< Group identifier
+    mode_t st_mode;             ///< Permissions for file access
+    std::time_t atime;          ///< Time of last access
+    std::time_t mtime;          ///< Time of last change
+    std::time_t ctime;          ///< Time of last status change
+    char* data;                 ///< File content
+    bool open = false;          ///< True if file is open
 
 public:
-    File(char* name, size_t size, char* data, int userID, int groupID, int mode);
+    File(char* name, size_t size, char* data, uid_t st_uid, gid_t st_gid, mode_t st_mode);
     ~File();
-    //TODO File methods that we probably will use; need to be implemented in file.ccp
-    //TODO return int value is status code (0 on success, -ERRORCODE on Error)
-
-    int rename(char* name);
-    int getMetadata(struct stat* meta); //look up via: $man 2 stat
-    int setUserID(int userID);
-    int setGroupID(int groupID);
-    int setOpen(bool open);
-    int getData(/*TODO params */);
-    int setData(/*TODO params */);
-    int setDataSize(/*TODO params */);
+    File(const File&);
 
 
+    int setName(char*);
+    int setSize(size_t);
+    int setUserID(uid_t);
+    int setGroupID(gid_t);
+    int setMode(mode_t);
+    int setATime();
+    int setMTime();
+    int setCTime();
+    int setOpen();
+    int setClose();
+    int append(size_t size, char* data);
+    int write(size_t size, char* data, off_t offset);
+
+    int getName(char*);
+    int getSize(size_t*);
+    int getUserID(uid_t*);
+    int getGroupID(gid_t*);
+    int getMode(mode_t*);
+    int getATime(std::time_t*);
+    int getMTime(std::time_t*);
+    int getCTime(std::time_t*);
+    int isOpen(bool*);
+    int getData(off_t offset, char*);
+    int getMetadata(struct stat *statbuf);
 };
 
-
-#endif //MYFS_FILE_H
