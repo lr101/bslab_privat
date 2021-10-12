@@ -15,9 +15,9 @@ class File {
     char* name;                 ///< Path to file
     size_t nameSize;            ///< Current path length excluding null character
     size_t size;                ///< Size of data block
-    int userID;                 ///< User identifier
-    int groupID;                ///< Group identifier
-    int mode;                   ///< Permissions for file access
+    uid_t st_uid;               ///< User identifier
+    gid_t st_gid;               ///< Group identifier
+    mode_t st_mode;             ///< Permissions for file access
     std::time_t atime;          ///< Time of last access
     std::time_t mtime;          ///< Time of last change
     std::time_t ctime;          ///< Time of last status change
@@ -25,31 +25,32 @@ class File {
     bool open = false;          ///< True if file is open
 
 public:
-    File(char* name, size_t size, char* data, int userID, int groupID, int mode);
+    File(char* name, size_t size, char* data, uid_t st_uid, gid_t st_gid, mode_t st_mode);
     ~File();
     File(const File&);
 
-    void setName(char*);
-    void setSize(size_t);
-    void setUserID(int);
-    void setGroupID(int);
-    void setMode(int);
-    void setATime();
-    void setMTime();
-    void setCTime();
-    void setOpen();
-    void setClose();
-    void append(size_t size, char* data);
-    void write(size_t size, char* data, off_t offset);
+    int setName(char*);
+    int setSize(size_t);
+    int setUserID(uid_t);
+    int setGroupID(gid_t);
+    int setMode(mode_t);
+    int setATime();
+    int setMTime();
+    int setCTime();
+    int setOpen();
+    int setClose();
+    int append(size_t size, char* data);
+    int write(size_t size, char* data, off_t offset);
 
-    char* getName();
-    size_t getSize();
-    int getUserID();
-    int getGroupID();
-    int getMode();
-    std::time_t getATime();
-    std::time_t getMTime();
-    std::time_t getCTime();
-    bool isOpen();
-    char* getData(off_t offset);
+    int getName(char*);
+    int getSize(size_t*);
+    int getUserID(uid_t*);
+    int getGroupID(gid_t*);
+    int getMode(mode_t*);
+    int getATime(std::time_t*);
+    int getMTime(std::time_t*);
+    int getCTime(std::time_t*);
+    int isOpen(bool*);
+    int getData(off_t offset, char*);
+    int getMetadata(struct stat *statbuf);
 };

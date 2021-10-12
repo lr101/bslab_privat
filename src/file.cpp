@@ -8,10 +8,10 @@
 /// \param name Path of the file. Can't exceed NAME_LENGTH.
 /// \param size Size of data block.
 /// \param data Data to be stored.
-/// \param userID User identification.
-/// \param mode Permissions for file access.
+/// \param st_uid User identification.
+/// \param st_mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-File::File(char *name, size_t size, char *data, int userID, int groupID, int mode) {
+File::File(char *name, size_t size, char *data, uid_t st_uid, gid_t st_gid, mode_t st_mode) {
     this->nameSize = std::strlen(name);
     if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
     this->name = new char[this->nameSize + 1];
@@ -21,9 +21,9 @@ File::File(char *name, size_t size, char *data, int userID, int groupID, int mod
     this->data = new char[this->size];
     std::memcpy(this->data, data, size);
 
-    this->userID = userID;
-    this->groupID = groupID;
-    this->mode = mode;
+    this->st_uid = st_uid;
+    this->st_gid = st_gid;
+    this->st_mode = st_mode;
     setATime();
     setMTime();
     setCTime();
@@ -39,9 +39,9 @@ File::~File() {
 File::File(const File &other) {
     nameSize = other.nameSize;
     size = other.size;
-    userID = other.userID;
-    groupID = other.groupID;
-    mode = other.mode;
+    st_uid = other.st_uid;
+    st_gid = other.st_gid;
+    st_mode = other.st_mode;
     atime = other.atime;
     mtime = other.mtime;
     ctime = other.ctime;
@@ -56,150 +56,178 @@ File::File(const File &other) {
 
 /// Change the path to the file.
 /// \param name New path to file.
-/// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-void File::setName(char *name) {
+/// \returns EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
+int File::setName(char *name) {
     size_t nameSize = std::strlen(name);
-    if (nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
-    delete[] name;
+    if (nameSize > NAME_LENGTH) return -EINVAL;
+    delete[] this->name;
     this->nameSize = nameSize;
     this->name = new char[this->nameSize];
     std::memcpy(this->name, name, this->nameSize + 1);
+    return 0;
 }
 
 /// Change the size of the data block.
 /// \param size New data size.
-void File::setSize(size_t size) {
+int File::setSize(size_t size) {
     this->size = size;
     std::realloc(this->data, this->size);
+    return 0;
 }
 
 /// Change the user identification.
-/// \param userID New user id.
-void File::setUserID(int userID) {
-    this->userID = userID;
+/// \param st_uid New user id.
+int File::setUserID(uid_t st_uid) {
+    this->st_uid = st_uid;
+    return 0;
 }
 
 /// Change the user identification.
-/// \param groupID New group id.
-void File::setGroupID(int groupID) {
-    this->groupID = groupID;
+/// \param st_gid New group id.
+int File::setGroupID(gid_t st_gid) {
+    this->st_gid = st_gid;
+    return 0;
 }
 
 /// Change the permissions for file access.
-/// \param mode New permissions.
-void File::setMode(int mode) {
-    this->mode = mode;
+/// \param st_mode New permissions.
+int File::setMode(mode_t st_mode) {
+    this->st_mode = st_mode;
+    return 0;
 }
 
 /// Update the time of last access to current time.
-void File::setATime() {
+int File::setATime() {
     this->atime = std::time(nullptr);
+    return 0;
 }
 
 /// Update the time of last change to current time.
-void File::setMTime() {
+int File::setMTime() {
     this->mtime = std::time(nullptr);
+    return 0;
 }
 
 /// Update the time of last status change to current time.
-void File::setCTime() {
+int File::setCTime() {
     this->ctime = std::time(nullptr);
+    return 0;
 }
 
 /// Open the file.
-/// \throws EINVAL If the file is already open.
-void File::setOpen() {
-    if (this->open) throw std::system_error(EINVAL, std::generic_category(), "File already opened");
+/// \returns EINVAL If the file is already open.
+int File::setOpen() {
+    if (this->open) return -EINVAL;
     this->open = true;
+    return 0;
 }
 
 /// Close the file.
-/// \throws EINVAL If the file is already closed.
-void File::setClose() {
-    if (!this->open) throw std::system_error(EINVAL, std::generic_category(), "File already closed");
+/// \returns EINVAL If the file is already closed.
+int File::setClose() {
+    if (!this->open) return -EINVAL;
     this->open = false;
+    return 0;
 }
 
 /// Get the file path.
 /// \return Pointer to name.
-char* File::getName() {
-    return name;
+int File::getName(char* name) {
+    name = new char [this->nameSize + 1];
+    std::strcpy(name, this->name);
+    return 0;
 }
 
 /// Get the data size.
 /// \return Size of data block.
-size_t File::getSize() {
-    return size;
+int File::getSize(size_t* size) {
+    *size = this->size;
+    return 0;
 }
 
 /// Get the user id.
 /// \return User identification.
-int File::getUserID() {
-    return userID;
+int File::getUserID(uid_t* st_uid) {
+    *st_uid = this->st_uid;
+    return 0;
 }
 
 /// Get the group id.
 /// \return Group identification.
-int File::getGroupID() {
-    return groupID;
+int File::getGroupID(gid_t* st_gid) {
+    *st_gid = this->st_gid;
+    return 0;
 }
 
 /// Get the permissions for file access.
 /// \return File permissions.
-int File::getMode() {
-    return mode;
+int File::getMode(mode_t* st_mode) {
+    *st_mode = this-> st_mode;
+    return 0;
 }
 
 /// Get the time of last access.
 /// \return Last access.
-std::time_t File::getATime() {
-    return atime;
+int File::getATime(std::time_t* atime) {
+    *atime = this->atime;
+    return 0;
 }
 
 /// Get the time of last change.
 /// \return Last change.
-std::time_t File::getMTime() {
-    return mtime;
+int File::getMTime(std::time_t* mtime) {
+    *mtime = this->mtime;
+    return 0;
 }
 
 /// Get the time of last status change.
 /// \return Last status change.
-std::time_t File::getCTime() {
-    return ctime;
+int File::getCTime(std::time_t* ctime) {
+    *ctime = this->ctime;
+    return 0;
 }
 
 /// Get whether the file is open.
 /// \return True if file is open, otherwise false.
-bool File::isOpen() {
-    return open;
+int File::isOpen(bool* open) {
+    *open = this->open;
+    return 0;
 }
 
 /// Append a new data block to the existing one.
 /// \param size Size of the new data.
 /// \param data Pointer to the new data.
-void File::append(size_t size, char* data) {
+int File::append(size_t size, char* data) {
     size_t oldSize = this->size;
     setSize(this->size + size);
     std::memcpy(this->data + oldSize, data, size);
+    return 0;
 }
 
 /// Override a part of the data block with new data.
 /// \param size Size of the new data.
 /// \param data Pointer to the new data.
 /// \param offset Offset to the location to write the data to.
-void File::write(size_t size, char* data, off_t offset) {
-    if (offset > this->size) throw std::system_error(EINVAL, std::generic_category(), "Offset can't be greater than data size");
+int File::write(size_t size, char* data, off_t offset) {
+    if (offset > this->size) return -EINVAL;
     if (size + offset > this->size) {
         setSize(size + offset);
     }
     std::memcpy(this->data + offset, data, size);
+    return 0;
 }
 
 /// Get a pointer to the data with offset.
 /// \param offset Offset from the beginning of the data.
 /// \return Pointer to the specified part of the data.
-/// \throws EINVAL If offset is greater than existing data size.
-char* File::getData(off_t offset) {
-    if (offset > this->size) throw std::system_error(EINVAL, std::generic_category(), "Offset can't be greater than data size");
-    return this->data + offset;
+/// \returns EINVAL If offset is greater than existing data size.
+int File::getData(off_t offset, char* data) {
+    if (offset > this->size) return -EINVAL;
+    *data = *(this->data + offset);
+    return 0;
+}
+
+int File::getMetadata(struct stat *statbuf) {
+    //TODO
+    return 0;
 }
