@@ -71,6 +71,7 @@ int File::setName(char *name) {
 /// Change the size of the data block.
 /// \param size New data size.
 /// \returns 0 on success
+
 int File::setSize(size_t size) {
     this->size = size;
     std::realloc(this->data, this->size);
@@ -88,6 +89,8 @@ int File::setUserID(uid_t st_uid) {
 /// Change the group identification.
 /// \param st_gid New group id.
 /// \returns 0 on success
+/// Change the user identification.
+/// \param st_gid New group id.
 int File::setGroupID(gid_t st_gid) {
     this->st_gid = st_gid;
     return 0;
