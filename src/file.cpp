@@ -2,6 +2,7 @@
 // Created by lukas on 08.10.21.
 //
 
+#include <bits/stat.h>
 #include "file.h"
 
 /// Create a new file.
@@ -72,7 +73,6 @@ int File::setName(char *name) {
 /// Change the size of the data block.
 /// \param size New data size.
 /// \returns 0 on success
-
 int File::setSize(size_t size) {
     this->size = size;
     std::realloc(this->data, this->size);
@@ -92,8 +92,6 @@ int File::setUserID(uid_t st_uid) {
 /// Change the group identification.
 /// \param st_gid New group id.
 /// \returns 0 on success
-/// Change the user identification.
-/// \param st_gid New group id.
 int File::setGroupID(gid_t st_gid) {
     this->st_gid = st_gid;
     setCTime();
@@ -260,6 +258,12 @@ int File::getData(off_t offset, char* data) {
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
 /// \returns 0 on success
 int File::getMetadata(struct stat *statbuf) {
-    //TODO
+    getUserID(statbuf->st_uid);
+    getGroupID(statbuf->st_gid);
+    getATime(statbuf->st_atime);
+    getMTime(statbuf->st_mtime);
+    getMode(statbuf->st_mode);
+    getSize(statbuf->st_size);
+    statbuf->st_nlink = 1;  //Set amount of hard links to file to 1 for now.
     return 0;
 }
