@@ -40,8 +40,8 @@ public:
     int setMode(mode_t);
     int setOpen();
     int setClose();
-    int append(size_t size, char* data);
-    int write(size_t size, char* data, off_t offset);
+    int append(size_t, char* );
+    int write(size_t, const char*, off_t);
 
     int getName(char*);
     int getSize(size_t*);
@@ -52,7 +52,7 @@ public:
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
     int isOpen(bool*);
-    int getData(off_t offset, char*);
-    int getMetadata(struct stat *statbuf);
+    int getData(off_t, char*);
+    int getMetadata(struct stat*);
 };
 
