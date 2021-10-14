@@ -230,12 +230,9 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     int ret = 0;
 
     if (itPath != this->files.end()) {
-        bool isOpen = true;
-        itPath->second->isOpen(&isOpen);
-        if (!isOpen) {
+        ret = itPath->second->setOpen();
+        if (!ret) {
             this->openFiles[path] = itPath->second;
-        } else {
-            ret = -EPERM;
         }
     } else {
         ret = -ENOENT;
