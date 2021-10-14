@@ -25,8 +25,8 @@ public:
 
     // TODO: [PART 1] Add attributes of your file system here
     //<'pathChar', 'FilePointer identified by pathChar'>
-    std::map<char*, File*> files;
-    std::map<char*, File*> openFiles;
+    std::map<std::string, File*> files;
+    std::map<std::string, File*> openFiles;
 
     MyInMemoryFS();
     ~MyInMemoryFS();
