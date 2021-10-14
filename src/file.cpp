@@ -234,7 +234,7 @@ int File::append(size_t size, char* data) {
 /// \param size Size of the new data.
 /// \param data Pointer to the new data.
 /// \param offset Offset to the location to write the data to.
-int File::write(size_t size, char* data, off_t offset) {
+int File::write(size_t size, const char* data, off_t offset) {
     if (offset > this->size) return -EINVAL;
     if (size + offset > this->size) {
         setSize(size + offset);
