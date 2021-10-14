@@ -221,29 +221,14 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 /// -ERRNO on failure.
 int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-
-    // TODO: [PART 1] Implement this!
-
     LOGF( "--> Trying to read %s, %lu, %lu\n", path, (unsigned long) offset, size );
 
-    char file54Text[] = "Hello World From File54!\n";
-    char file349Text[] = "Hello World From File349!\n";
-    char *selectedText = NULL;
-
-    // ... //
-
-    if ( strcmp( path, "/file54" ) == 0 )
-        selectedText = file54Text;
-    else if ( strcmp( path, "/file349" ) == 0 )
-        selectedText = file349Text;
-    else
-        return -ENOENT;
-
-    // ... //
-
-    memcpy( buf, selectedText + offset, size );
-
-    RETURN((int) (strlen( selectedText ) - offset));
+    int status = openFiles[path]->getData(offset, buf);
+    if (status < 0) {
+        RETURN(status);
+    } else {
+        RETURN((int) (strlen(buf) - offset));
+    }
 }
 
 /// @brief Write to a file.
@@ -264,9 +249,13 @@ int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offse
 int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
 
-    // TODO: [PART 1] Implement this!
+    int status = openFiles[path]->write(size, buf, offset);
+    if (status < 0) {
+        RETURN(status);
+    } else {
+        RETURN((int)size);
+    }
 
-    RETURN(0);
 }
 
 /// @brief Close a file.
@@ -277,10 +266,12 @@ int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
-
-    // TODO: [PART 1] Implement this!
-
-    RETURN(0);
+    if (!files[path]) {RETURN(-ENOENT);}
+    if (openFiles.erase(path)) {
+        RETURN(-EBADF);
+    } else {
+        RETURN(0);
+    }
 }
 
 /// @brief Truncate a file.
@@ -293,10 +284,11 @@ int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo)
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
-
-    // TODO: [PART 1] Implement this!
-
-    return 0;
+    if (files[path]->setSize((size_t) newSize)) {
+        RETURN(-ENOENT);
+    } else {
+        RETURN(0);
+    }
 }
 
 /// @brief Truncate a file.
@@ -311,10 +303,11 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_info *fileInfo) {
     LOGM();
-
-    // TODO: [PART 1] Implement this!
-
-    RETURN(0);
+    if (files[path]->setSize((size_t) newSize)) {
+        RETURN(-ENOENT);
+    } else {
+        RETURN(0);
+    }
 }
 
 /// @brief Read a directory.
@@ -329,21 +322,20 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-
-    // TODO: [PART 1] Implement this!
-
     LOGF( "--> Getting The List of Files of %s\n", path );
 
     filler( buf, ".", NULL, 0 ); // Current Directory
     filler( buf, "..", NULL, 0 ); // Parent Directory
 
-    if ( strcmp( path, "/" ) == 0 ) // If the user is trying to show the files/directories of the root directory show the following
-    {
-        filler( buf, "file54", NULL, 0 );
-        filler( buf, "file349", NULL, 0 );
+    // If the user is trying to show the files/directories of the root directory show the following
+    if ( strcmp( path, "/" ) == 0 ) {
+        for (auto const& item : files) {
+            filler(buf, (item.first).c_str()+1, NULL, 0);
+        }
+        RETURN(0);
+    } else {
+        RETURN(-ENOTDIR);
     }
-
-    RETURN(0);
 }
 
 /// Initialize a file system.
@@ -363,8 +355,6 @@ void* MyInMemoryFS::fuseInit(struct fuse_conn_info *conn) {
         LOG("Starting logging...\n");
 
         LOG("Using in-memory mode");
-
-        // TODO: [PART 1] Implement your initialization methods here
     }
 
     RETURN(0);
@@ -375,8 +365,10 @@ void* MyInMemoryFS::fuseInit(struct fuse_conn_info *conn) {
 /// This function is called when the file system is unmounted. You may add some cleanup code here.
 void MyInMemoryFS::fuseDestroy() {
     LOGM();
-
-    // TODO: [PART 1] Implement this!
+    //TODO no clue if this works
+    for (auto const& item : files) {
+        delete item.second;
+    }
 
 }
 
