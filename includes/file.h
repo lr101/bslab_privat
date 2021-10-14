@@ -24,6 +24,9 @@ class File {
     char* data;                 ///< File content
     bool open = false;          ///< True if file is open
 
+    int setATime();
+    int setMTime();
+    int setCTime();
 public:
     File(char* name, size_t size, char* data, uid_t st_uid, gid_t st_gid, mode_t st_mode);
     ~File();
@@ -35,9 +38,6 @@ public:
     int setUserID(uid_t);
     int setGroupID(gid_t);
     int setMode(mode_t);
-    int setATime();
-    int setMTime();
-    int setCTime();
     int setOpen();
     int setClose();
     int append(size_t size, char* data);

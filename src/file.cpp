@@ -2,6 +2,7 @@
 // Created by lukas on 08.10.21.
 //
 
+#include <bits/stat.h>
 #include "file.h"
 
 /// Create a new file.
@@ -65,6 +66,7 @@ int File::setName(char *name) {
     this->nameSize = nameSize;
     this->name = new char[this->nameSize];
     std::memcpy(this->name, name, this->nameSize + 1);
+    setMTime();
     return 0;
 }
 
@@ -74,6 +76,7 @@ int File::setName(char *name) {
 int File::setSize(size_t size) {
     this->size = size;
     std::realloc(this->data, this->size);
+    setMTime();
     return 0;
 }
 
@@ -82,6 +85,7 @@ int File::setSize(size_t size) {
 /// \returns 0 on success
 int File::setUserID(uid_t st_uid) {
     this->st_uid = st_uid;
+    setCTime();
     return 0;
 }
 
@@ -90,6 +94,7 @@ int File::setUserID(uid_t st_uid) {
 /// \returns 0 on success
 int File::setGroupID(gid_t st_gid) {
     this->st_gid = st_gid;
+    setCTime();
     return 0;
 }
 
@@ -98,6 +103,7 @@ int File::setGroupID(gid_t st_gid) {
 /// \returns 0 on success
 int File::setMode(mode_t st_mode) {
     this->st_mode = st_mode;
+    setCTime();
     return 0;
 }
 
@@ -127,6 +133,7 @@ int File::setCTime() {
 int File::setOpen() {
     if (this->open) return -EINVAL;
     this->open = true;
+    setATime();
     return 0;
 }
 
@@ -219,6 +226,7 @@ int File::append(size_t size, char* data) {
     size_t oldSize = this->size;
     setSize(this->size + size);
     std::memcpy(this->data + oldSize, data, size);
+    setMTime();
     return 0;
 }
 
@@ -232,6 +240,7 @@ int File::write(size_t size, char* data, off_t offset) {
         setSize(size + offset);
     }
     std::memcpy(this->data + offset, data, size);
+    setMTime();
     return 0;
 }
 
@@ -242,12 +251,19 @@ int File::write(size_t size, char* data, off_t offset) {
 int File::getData(off_t offset, char* data) {
     if (offset > this->size) return -EINVAL;
     *data = *(this->data + offset);
+    setATime();
     return 0;
 }
 /// Get the metadata of a file (user & group id, modification times, permissions, ...).
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
 /// \returns 0 on success
 int File::getMetadata(struct stat *statbuf) {
-    //TODO
+    getUserID(statbuf->st_uid);
+    getGroupID(statbuf->st_gid);
+    getATime(statbuf->st_atime);
+    getMTime(statbuf->st_mtime);
+    getMode(statbuf->st_mode);
+    getSize(statbuf->st_size);
+    statbuf->st_nlink = 1;  //Set amount of hard links to file to 1 for now.
     return 0;
 }
