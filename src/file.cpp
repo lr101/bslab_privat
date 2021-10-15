@@ -2,7 +2,6 @@
 // Created by lukas on 08.10.21.
 //
 
-#include <bits/stat.h>
 #include "file.h"
 
 /// Create a new file.
@@ -58,7 +57,8 @@ int File::setName(std::string *name) {
 /// Change the size of the data block.
 /// \param size [in] New data size.
 /// \returns 0 on success
-int File::setSize(size_t size) {
+int File::setSize(off_t size) {
+    if (size < 0) return -EINVAL;
     this->size = size;
     std::realloc(this->data, this->size);
     setMTime();
@@ -141,7 +141,7 @@ int File::getName(std::string *name) {
 /// Get the data size.
 /// \param [out] size pointer containing file size
 /// \returns 0 on success
-int File::getSize(size_t* size) {
+int File::getSize(off_t* size) {
     *size = this->size;
     return 0;
 }
@@ -204,7 +204,8 @@ bool File::isOpen() {
 /// \param size [in] Size of the new data.
 /// \param data [in] Pointer to the new data.
 /// \returns 0 on success
-int File::append(size_t size, char* data) {
+int File::append(off_t size, char* data) {
+    if (size < 0) return -EINVAL;
     size_t oldSize = this->size;
     setSize(this->size + size);
     std::memcpy(this->data + oldSize, data, size);
@@ -217,7 +218,8 @@ int File::append(size_t size, char* data) {
 /// \param data [in] Pointer to the new data.
 /// \param offset [in] Offset to the location to write the data to.
 /// \returns 0 on success
-int File::write(size_t size, const char* data, off_t offset) {
+int File::write(off_t size, const char* data, off_t offset) {
+    if (size < 0) return -EINVAL;
     if (offset > this->size) return -EINVAL;
     if (size + offset > this->size) {
         setSize(size + offset);
@@ -241,12 +243,12 @@ int File::getData(off_t offset, char* data) {
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
 /// \returns 0 on success
 int File::getMetadata(struct stat *statbuf) {
-    getUserID(statbuf->st_uid);
-    getGroupID(statbuf->st_gid);
-    getATime(statbuf->st_atime);
-    getMTime(statbuf->st_mtime);
-    getMode(statbuf->st_mode);
-    getSize(statbuf->st_size);
+    getUserID(&statbuf->st_uid);
+    getGroupID(&statbuf->st_gid);
+    getATime(&statbuf->st_atime);
+    getMTime(&statbuf->st_mtime);
+    getMode(&statbuf->st_mode);
+    getSize(&statbuf->st_size);
     statbuf->st_nlink = 1;  //Set amount of hard links to file to 1 for now.
     return 0;
 }
