@@ -125,7 +125,7 @@ int File::setOpen() {
 /// Close the file.
 /// \returns 0 on success, -EINVAL If the file is already closed.
 int File::setClose() {
-    if (!this->open) return -EINVAL;
+    if (!this->open) return -EINVAL; //TODO: or -EBADF ?
     this->open = false;
     return 0;
 }
@@ -200,40 +200,28 @@ bool File::isOpen() {
     return this->open;
 }
 
-/// Append a new data block to the existing one.
-/// \param size [in] Size of the new data.
-/// \param data [in] Pointer to the new data.
-/// \returns 0 on success
-int File::append(off_t size, char* data) {
-    if (size < 0) return -EINVAL;
-    size_t oldSize = this->size;
-    setSize(this->size + size);
-    std::memcpy(this->data + oldSize, data, size);
-    setMTime();
-    return 0;
-}
-
 /// Override a part of the data block with new data.
 /// \param size [in] Size of the new data.
 /// \param data [in] Pointer to the new data.
 /// \param offset [in] Offset to the location to write the data to.
-/// \returns 0 on success
+/// \returns 0 on success, -EINVAL If size negative, -EBADF If file is not open
 int File::write(off_t size, const char* data, off_t offset) {
+    if (!this->open) {return -EBADF;}
     if (size < 0) return -EINVAL;
-    if (offset > this->size) return -EINVAL;
     if (size + offset > this->size) {
         setSize(size + offset);
     }
     std::memcpy(this->data + offset, data, size);
     setMTime();
-    return 0;
+    return size;
 }
 
 /// Get a pointer to the data with offset.
 /// \param offset [in] Offset from the beginning of the data.
 /// \param data [out] Pointer to the requested data.
-/// \returns 0 on success, -EINVAL If offset is greater than existing data size.
+/// \returns 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
 int File::getData(off_t offset, char* data) {
+    if (!this->open) {return -EBADF;}
     if (offset > this->size) return -EINVAL;
     *data = *(this->data + offset);
     setATime();
