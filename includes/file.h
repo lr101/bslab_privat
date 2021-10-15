@@ -14,7 +14,7 @@
 
 class File {
     std::string name;           ///< Path to file
-    size_t size;                ///< Size of data block
+    off_t size;                 ///< Size of data block
     uid_t uid;                  ///< User identifier
     gid_t gid;                  ///< Group identifier
     mode_t mode;                ///< Permissions for file access
@@ -34,17 +34,17 @@ public:
 
 
     int setName(std::string*);
-    int setSize(size_t);
+    int setSize(off_t);
     int setUserID(uid_t);
     int setGroupID(gid_t);
     int setMode(mode_t);
     int setOpen();
     int setClose();
-    int append(size_t, char* );
-    int write(size_t, const char*, off_t);
+    int append(off_t, char* );
+    int write(off_t, const char*, off_t);
 
     int getName(std::string*);
-    int getSize(size_t*);
+    int getSize(off_t*);
     int getUserID(uid_t*);
     int getGroupID(gid_t*);
     int getMode(mode_t*);
