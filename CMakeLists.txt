@@ -41,7 +41,7 @@ find_package(PkgConfig)
 pkg_check_modules(FUSE fuse)
 
 set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR/catch})
-add_library(Catch INTERFACE includes/file.h src/file.cpp)
+add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
 target_link_libraries(mount.myfs ${FUSE_LDFLAGS})
