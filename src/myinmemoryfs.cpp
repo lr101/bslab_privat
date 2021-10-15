@@ -42,7 +42,6 @@
 ///
 /// You may add your own constructor code here.
 MyInMemoryFS::MyInMemoryFS() : MyFS() {
-
     // TODO: [PART 1] Add your constructor code here
 
 }
@@ -66,7 +65,7 @@ MyInMemoryFS::~MyInMemoryFS() {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
-
+    LOGF("Attributes: path=%s, mode=%u", path, mode);
     int ret = 0;
     try {
         if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
@@ -93,6 +92,7 @@ int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseUnlink(const char *path) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
 
     auto itPath = this->files.find(path);
     int ret = 0;
@@ -117,7 +117,7 @@ int MyInMemoryFS::fuseUnlink(const char *path) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
-
+    LOGF("Attributes: path=%s, newpath=%s", path, newpath);
     auto itPath = this->files.find(path);
     int ret;
 
@@ -139,8 +139,7 @@ int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
     LOGM();
-
-    LOGF("\tAttributes of %s requested\n", path);
+    LOGF("Attributes: path=%s", path);
 
     // GNU's definitions of the attributes (http://www.gnu.org/software/libc/manual/html_node/Attribute-Meanings.html):
     // 		st_uid: 	The user ID of the file’s owner.
@@ -165,13 +164,22 @@ int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
         statbuf->st_gid = getgid();
         statbuf->st_atime = time(NULL);
         statbuf->st_mtime = time(NULL);
+        statbuf->st_ctime = time(NULL);
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2; // Why "two" hardlinks instead of "one"? The answer is here: http://unix.stackexchange.com/a/101536
     } else if (itPath != this->files.end()) {
         ret = itPath->second->getMetadata(statbuf);
     } else
         ret = -ENOENT;
-
+    if (ret >= 0) {
+        LOGF("Return Attribute: userID=%d", statbuf->st_uid);
+        LOGF("Return Attribute: groupID=%d", statbuf->st_gid);
+        LOGF("Return Attribute: aTime=%ld", statbuf->st_atime);
+        LOGF("Return Attribute: cTime=%ld", statbuf->st_ctime);
+        LOGF("Return Attribute: mTime=%ld", statbuf->st_mtime);
+        LOGF("Return Attribute: mode=%d", statbuf->st_mode);
+        LOGF("Return Attribute: nLink=%lu", statbuf->st_nlink);
+    }
     RETURN(ret);
 }
 
@@ -184,7 +192,7 @@ int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
     LOGM();
-
+    LOGF("Attributes: path=%s, mode=%d", path, mode);
     auto itPath = this->files.find(path);
     int ret;
 
@@ -207,7 +215,7 @@ int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     LOGM();
-
+    LOGF("Attributes: path=%s, userID=%u, groupID=%u", path, uid, gid);
     auto itPath = this->files.find(path);
     int ret;
 
@@ -231,7 +239,7 @@ int MyInMemoryFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s", path);
     auto itPath = this->files.find(path);
     int ret;
 
@@ -266,7 +274,7 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 /// -ERRNO on failure.
 int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-    LOGF( "--> Trying to read %s, %lu, %lu\n", path, (unsigned long) offset, size );
+    LOGF( "Trying to read %s, %lu, %lu\n", path, (unsigned long) offset, size );
     if (openFiles.find(path) == openFiles.end()) {RETURN(-EBADF);}
     RETURN(openFiles[path]->getData(offset, buf));
 }
@@ -288,6 +296,7 @@ int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offse
 /// \return Number of bytes written on success, -ERRNO on failure.
 int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
     RETURN(curFile->second->write(size, buf, offset));
@@ -301,6 +310,7 @@ int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
     if (!(curFile->second->isOpen())) {RETURN(-EBADF);}
@@ -318,6 +328,7 @@ int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo)
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
     if (files.find(path) == files.end()) {RETURN(-EBADF);}
     RETURN(files[path]->setSize(newSize));
 }
@@ -334,6 +345,7 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
     if (files.find(path) == files.end()) {RETURN(-EBADF);}
     RETURN(files[path]->setSize(newSize));
 }
@@ -350,7 +362,7 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-    LOGF( "--> Getting The List of Files of %s\n", path );
+    LOGF("Attributes: path=%s", path);
 
     filler( buf, ".", NULL, 0 ); // Current Directory
     filler( buf, "..", NULL, 0 ); // Parent Directory
@@ -359,6 +371,7 @@ int MyInMemoryFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t fille
     if ( strcmp( path, "/" ) == 0 ) {
         for (auto const& item : files) {
             filler(buf, (item.first).c_str()+1, NULL, 0);
+            LOGF("Files found:%s",item.first.c_str());
         }
         RETURN(0);
     } else {
