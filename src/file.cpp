@@ -6,12 +6,10 @@
 #include "file.h"
 
 /// Create a new file.
-/// \param name Path of the file. Can't exceed NAME_LENGTH.
-/// \param size Size of data block.
-/// \param data Data to be stored.
-/// \param st_uid User identification.
-/// \param st_gid Group identification.
-/// \param st_mode Permissions for file access.
+/// \param [in] name Path of the file. Can't exceed NAME_LENGTH.
+/// \param [in] uid User identification.
+/// \param [in] gid Group identification.
+/// \param [in] mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
 File::File(std::string *name, uid_t uid, gid_t gid, mode_t mode) {
     if (name->size() > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
@@ -31,7 +29,7 @@ File::~File() {
 }
 
 /// Copy constructor for the file class.
-/// \param other Another file to copy from.
+/// \param other [in] Another file to copy from.
 File::File(const File &other) {
     name = std::string(other.name);
     size = other.size;
@@ -48,7 +46,7 @@ File::File(const File &other) {
 }
 
 /// Change the path to the file.
-/// \param name New path to file.
+/// \param name [in] New path to file.
 /// \returns 0 on success, -EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
 int File::setName(std::string *name) {
     if (name->size() > NAME_LENGTH) return -EINVAL;
@@ -58,7 +56,7 @@ int File::setName(std::string *name) {
 }
 
 /// Change the size of the data block.
-/// \param size New data size.
+/// \param size [in] New data size.
 /// \returns 0 on success
 int File::setSize(size_t size) {
     this->size = size;
@@ -68,7 +66,7 @@ int File::setSize(size_t size) {
 }
 
 /// Change the user identification.
-/// \param st_uid New user id.
+/// \param uid [in] New user id.
 /// \returns 0 on success
 int File::setUserID(uid_t uid) {
     this->uid = uid;
@@ -77,7 +75,7 @@ int File::setUserID(uid_t uid) {
 }
 
 /// Change the group identification.
-/// \param st_gid New group id.
+/// \param gid [in] New group id.
 /// \returns 0 on success
 int File::setGroupID(gid_t gid) {
     this->gid = gid;
@@ -86,7 +84,7 @@ int File::setGroupID(gid_t gid) {
 }
 
 /// Change the permissions for file access.
-/// \param st_mode New permissions.
+/// \param mode [in] New permissions.
 /// \returns 0 on success
 int File::setMode(mode_t mode) {
     this->mode = mode;
@@ -149,7 +147,7 @@ int File::getSize(size_t* size) {
 }
 
 /// Get the user id.
-/// \param [out] st_uid pointer containing user identification
+/// \param [out] uid pointer containing user identification
 /// \returns 0 on success
 int File::getUserID(uid_t* uid) {
     *uid = this->uid;
@@ -157,7 +155,7 @@ int File::getUserID(uid_t* uid) {
 }
 
 /// Get the group id.
-/// \param [out] st_gid pointer containing group identification
+/// \param [out] gid pointer containing group identification
 /// \returns 0 on success
 int File::getGroupID(gid_t* gid) {
     *gid = this->gid;
@@ -165,7 +163,7 @@ int File::getGroupID(gid_t* gid) {
 }
 
 /// Get the permissions for file access.
-/// \param [out] st_mode pointer containing user mode
+/// \param [out] mode pointer containing user mode
 /// \returns 0 on success
 int File::getMode(mode_t* mode) {
     *mode = this-> mode;
@@ -205,8 +203,8 @@ int File::isOpen(bool* open) {
 }
 
 /// Append a new data block to the existing one.
-/// \param size Size of the new data.
-/// \param data Pointer to the new data.
+/// \param size [in] Size of the new data.
+/// \param data [in] Pointer to the new data.
 /// \returns 0 on success
 int File::append(size_t size, char* data) {
     size_t oldSize = this->size;
@@ -217,9 +215,10 @@ int File::append(size_t size, char* data) {
 }
 
 /// Override a part of the data block with new data.
-/// \param size Size of the new data.
-/// \param data Pointer to the new data.
-/// \param offset Offset to the location to write the data to.
+/// \param size [in] Size of the new data.
+/// \param data [in] Pointer to the new data.
+/// \param offset [in] Offset to the location to write the data to.
+/// \returns 0 on success
 int File::write(size_t size, const char* data, off_t offset) {
     if (offset > this->size) return -EINVAL;
     if (size + offset > this->size) {
@@ -231,8 +230,8 @@ int File::write(size_t size, const char* data, off_t offset) {
 }
 
 /// Get a pointer to the data with offset.
-/// \param offset Offset from the beginning of the data.
-/// \return Pointer to the specified part of the data.
+/// \param offset [in] Offset from the beginning of the data.
+/// \param data [out] Pointer to the requested data.
 /// \returns 0 on success, -EINVAL If offset is greater than existing data size.
 int File::getData(off_t offset, char* data) {
     if (offset > this->size) return -EINVAL;
