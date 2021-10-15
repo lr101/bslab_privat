@@ -288,8 +288,9 @@ int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offse
 /// \return Number of bytes written on success, -ERRNO on failure.
 int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-    if (openFiles.find(path) == openFiles.end()) {RETURN(-EBADF);}
-    RETURN(openFiles[path]->write(size, buf, offset));
+    auto curFile = files.find(path);
+    if (curFile == files.end()) {RETURN(-ENOENT);}
+    RETURN(curFile->second->write(size, buf, offset));
 }
 
 /// @brief Close a file.
@@ -304,7 +305,7 @@ int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo)
     if (curFile == files.end()) {RETURN(-ENOENT);}
     if (!(curFile->second->isOpen())) {RETURN(-EBADF);}
     openFiles.erase(path);
-    RETURN(curFile->second->setOpen());
+    RETURN(curFile->second->setClose());
 }
 
 /// @brief Truncate a file.
