@@ -17,7 +17,8 @@ add_executable(mount.myfs src/blockdevice.cpp
         src/myinmemoryfs.cpp
         src/myondiskfs.cpp
         src/wrap.cpp
-        src/mount.myfs.c includes/file.h src/file.cpp)
+        src/mount.myfs.c
+        src/file.cpp)
 
 add_executable(unittests src/blockdevice.cpp
         src/myfs.cpp
@@ -26,7 +27,9 @@ add_executable(unittests src/blockdevice.cpp
         testing/main.cpp
         testing/utest-blockdevice.cpp
         testing/utest-myfs.cpp
-        testing/tools.cpp testing/itest.cpp includes/file.h src/file.cpp)
+        testing/tools.cpp
+        testing/itest.cpp
+        src/file.cpp)
 
 add_executable(integrationtests
         src/blockdevice.cpp
@@ -35,13 +38,14 @@ add_executable(integrationtests
         src/myondiskfs.cpp
         testing/main.cpp
         testing/itest.cpp
-        testing/tools.cpp includes/file.h src/file.cpp)
+        testing/tools.cpp
+        src/file.cpp)
 
 find_package(PkgConfig)
 pkg_check_modules(FUSE fuse)
 
 set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR/catch})
-add_library(Catch INTERFACE includes/file.h src/file.cpp)
+add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
 target_link_libraries(mount.myfs ${FUSE_LDFLAGS})
