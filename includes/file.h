@@ -8,16 +8,16 @@
 #include <cstring>
 #include <errno.h>
 #include <system_error>
+#include <sys/stat.h>
 
 #include "myfs-structs.h"
 
 class File {
-    char* name;                 ///< Path to file
-    size_t nameSize;            ///< Current path length excluding null character
-    size_t size;                ///< Size of data block
-    uid_t st_uid;               ///< User identifier
-    gid_t st_gid;               ///< Group identifier
-    mode_t st_mode;             ///< Permissions for file access
+    std::string name;           ///< Path to file
+    off_t size;                 ///< Size of data block
+    uid_t uid;                  ///< User identifier
+    gid_t gid;                  ///< Group identifier
+    mode_t mode;                ///< Permissions for file access
     std::time_t atime;          ///< Time of last access
     std::time_t mtime;          ///< Time of last change
     std::time_t ctime;          ///< Time of last status change
@@ -28,30 +28,30 @@ class File {
     int setMTime();
     int setCTime();
 public:
-    File(char* name, size_t size, char* data, uid_t st_uid, gid_t st_gid, mode_t st_mode);
+    File(std::string *name, uid_t uid, gid_t gid, mode_t mode);
     ~File();
     File(const File&);
 
 
-    int setName(char*);
-    int setSize(size_t);
+    int setName(std::string*);
+    int setSize(off_t);
     int setUserID(uid_t);
     int setGroupID(gid_t);
     int setMode(mode_t);
     int setOpen();
     int setClose();
-    int append(size_t, char* );
-    int write(size_t, const char*, off_t);
+    int append(off_t, char* );
+    int write(off_t, const char*, off_t);
 
-    int getName(char*);
-    int getSize(size_t*);
+    int getName(std::string*);
+    int getSize(off_t*);
     int getUserID(uid_t*);
     int getGroupID(gid_t*);
     int getMode(mode_t*);
     int getATime(std::time_t*);
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
-    int isOpen(bool*);
+    bool isOpen();
     int getData(off_t, char*);
     int getMetadata(struct stat*);
 };
