@@ -70,7 +70,8 @@ int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     int ret = 0;
 
     if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
-        this->files[path] = new File(&std::string(path)[0], 0, nullptr, getuid(), getgid(), mode);
+        std::string newName = path;
+        this->files[path] = new File(&newName, getuid(), getgid(), mode);
     } else if (this->files.size() >= NUM_DIR_ENTRIES) {
         ret = -ENOSPC;
     } else {
@@ -114,10 +115,11 @@ int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
 
     auto itPath = this->files.find(path);
-    int ret = 0;
+    int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setName(&std::string(newpath)[0]);
+        std::string newPath = path;
+        ret = itPath->second->setName(&newPath);
     } else {
         ret = -ENOENT;
     }
@@ -180,7 +182,7 @@ int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
     LOGM();
 
     auto itPath = this->files.find(path);
-    int ret = 0;
+    int ret;
 
     if (itPath != this->files.end()) {
         ret = itPath->second->setMode(mode);
@@ -203,7 +205,7 @@ int MyInMemoryFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     LOGM();
 
     auto itPath = this->files.find(path);
-    int ret = 0;
+    int ret;
 
     if (itPath != this->files.end()) {
         ret = itPath->second->setUserID(uid);
@@ -227,7 +229,7 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
 
     auto itPath = this->files.find(path);
-    int ret = 0;
+    int ret;
 
     if (itPath != this->files.end()) {
         ret = itPath->second->setOpen();
@@ -335,7 +337,7 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
 
     auto itPath = this->files.find(path);
-    int ret = 0;
+    int ret;
 
     if (itPath != this->files.end()) {
         ret = itPath->second->setSize(newSize);
