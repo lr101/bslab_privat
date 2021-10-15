@@ -2,7 +2,6 @@
 // Created by lukas on 08.10.21.
 //
 
-#include <bits/stat.h>
 #include "file.h"
 
 /// Create a new file.

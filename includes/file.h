@@ -8,6 +8,7 @@
 #include <cstring>
 #include <errno.h>
 #include <system_error>
+#include <sys/stat.h>
 
 #include "myfs-structs.h"
 
