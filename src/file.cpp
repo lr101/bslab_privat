@@ -13,19 +13,14 @@
 /// \param st_gid Group identification.
 /// \param st_mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-File::File(char *name, size_t size, char *data, uid_t st_uid, gid_t st_gid, mode_t st_mode) {
-    this->nameSize = std::strlen(name);
-    if (this->nameSize > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category(), "File name too long");
-    this->name = new char[this->nameSize + 1];
-    std::memcpy(this->name, name, this->nameSize + 1);
-
-    this->size = size;
-    this->data = new char[this->size];
-    std::memcpy(this->data, data, size);
-
-    this->st_uid = st_uid;
-    this->st_gid = st_gid;
-    this->st_mode = st_mode;
+File::File(std::string *name, uid_t uid, gid_t gid, mode_t mode) {
+    if (name->size() > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
+    this->name = std::string(*name);
+    this->size = 0;
+    this->data = new char[0];
+    this->uid = uid;
+    this->gid = gid;
+    this->mode = mode;
     setATime();
     setMTime();
     setCTime();
@@ -33,24 +28,20 @@ File::File(char *name, size_t size, char *data, uid_t st_uid, gid_t st_gid, mode
 
 File::~File() {
     delete[] data;
-    delete[] name;
 }
 
 /// Copy constructor for the file class.
 /// \param other Another file to copy from.
 File::File(const File &other) {
-    nameSize = other.nameSize;
+    name = std::string(other.name);
     size = other.size;
-    st_uid = other.st_uid;
-    st_gid = other.st_gid;
-    st_mode = other.st_mode;
+    uid = other.uid;
+    gid = other.gid;
+    mode = other.mode;
     atime = other.atime;
     mtime = other.mtime;
     ctime = other.ctime;
     open = other.open;
-
-    name = new char[nameSize];
-    std::memcpy(name, other.name, nameSize);
 
     data = new char[size];
     std::memcpy(data, other.data, size);
@@ -59,13 +50,9 @@ File::File(const File &other) {
 /// Change the path to the file.
 /// \param name New path to file.
 /// \returns 0 on success, -EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-int File::setName(char *name) {
-    size_t nameSize = std::strlen(name);
-    if (nameSize > NAME_LENGTH) return -EINVAL;
-    delete[] this->name;
-    this->nameSize = nameSize;
-    this->name = new char[this->nameSize];
-    std::memcpy(this->name, name, this->nameSize + 1);
+int File::setName(std::string *name) {
+    if (name->size() > NAME_LENGTH) return -EINVAL;
+    this->name = std::string(*name);
     setMTime();
     return 0;
 }
@@ -83,8 +70,8 @@ int File::setSize(size_t size) {
 /// Change the user identification.
 /// \param st_uid New user id.
 /// \returns 0 on success
-int File::setUserID(uid_t st_uid) {
-    this->st_uid = st_uid;
+int File::setUserID(uid_t uid) {
+    this->uid = uid;
     setCTime();
     return 0;
 }
@@ -92,8 +79,8 @@ int File::setUserID(uid_t st_uid) {
 /// Change the group identification.
 /// \param st_gid New group id.
 /// \returns 0 on success
-int File::setGroupID(gid_t st_gid) {
-    this->st_gid = st_gid;
+int File::setGroupID(gid_t gid) {
+    this->gid = gid;
     setCTime();
     return 0;
 }
@@ -101,8 +88,8 @@ int File::setGroupID(gid_t st_gid) {
 /// Change the permissions for file access.
 /// \param st_mode New permissions.
 /// \returns 0 on success
-int File::setMode(mode_t st_mode) {
-    this->st_mode = st_mode;
+int File::setMode(mode_t mode) {
+    this->mode = mode;
     setCTime();
     return 0;
 }
@@ -148,9 +135,8 @@ int File::setClose() {
 /// Get the file path.
 /// \param [out] name pointer containing file name
 /// \returns 0 on success
-int File::getName(char* name) {
-    name = new char [this->nameSize + 1];
-    std::strcpy(name, this->name);
+int File::getName(std::string *name) {
+    *name = std::string(this->name);
     return 0;
 }
 
@@ -165,24 +151,24 @@ int File::getSize(size_t* size) {
 /// Get the user id.
 /// \param [out] st_uid pointer containing user identification
 /// \returns 0 on success
-int File::getUserID(uid_t* st_uid) {
-    *st_uid = this->st_uid;
+int File::getUserID(uid_t* uid) {
+    *uid = this->uid;
     return 0;
 }
 
 /// Get the group id.
 /// \param [out] st_gid pointer containing group identification
 /// \returns 0 on success
-int File::getGroupID(gid_t* st_gid) {
-    *st_gid = this->st_gid;
+int File::getGroupID(gid_t* gid) {
+    *gid = this->gid;
     return 0;
 }
 
 /// Get the permissions for file access.
 /// \param [out] st_mode pointer containing user mode
 /// \returns 0 on success
-int File::getMode(mode_t* st_mode) {
-    *st_mode = this-> st_mode;
+int File::getMode(mode_t* mode) {
+    *mode = this-> mode;
     return 0;
 }
 
