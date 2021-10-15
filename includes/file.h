@@ -50,7 +50,7 @@ public:
     int getATime(std::time_t*);
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
-    int isOpen(bool*);
+    bool isOpen();
     int getData(off_t, char*);
     int getMetadata(struct stat*);
 };

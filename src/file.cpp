@@ -195,11 +195,9 @@ int File::getCTime(std::time_t* ctime) {
 }
 
 /// Get whether the file is open.
-/// \param [out] open pointer containing whether file is open (true = open, false = closed)
-/// \returns 0 on success
-int File::isOpen(bool* open) {
-    *open = this->open;
-    return 0;
+/// \returns Boolean value if file was already opened.
+bool File::isOpen() {
+    return this->open;
 }
 
 /// Append a new data block to the existing one.
