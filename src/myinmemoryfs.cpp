@@ -244,9 +244,6 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 
     if (itPath != this->files.end()) {
         ret = itPath->second->setOpen();
-        if (!ret) {
-            this->openFiles[path] = itPath->second;
-        }
     } else {
         ret = -ENOENT;
     }
@@ -317,8 +314,6 @@ int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo)
     LOGF("Attributes: path=%s", path);
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    if (!(curFile->second->isOpen())) {RETURN(-EBADF);}
-    openFiles.erase(path);
     RETURN(curFile->second->setClose());
 }
 
