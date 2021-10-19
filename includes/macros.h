@@ -42,7 +42,7 @@ __LINE__); } while (0)
 #ifdef DEBUG_RETURN_VALUES
 #define RETURN(ret) \
 if (ret < 0) {      \
-    char* text;    \
+    const char* text;    \
     switch(ret) {   \
         case -2:  text = "No such file or directory"; break; \
         case -22:  text = "Invalid argument"; break; \
