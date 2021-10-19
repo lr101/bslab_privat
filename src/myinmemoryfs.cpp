@@ -66,22 +66,21 @@ MyInMemoryFS::~MyInMemoryFS() {
 int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
-    int ret = 0;
-    try {
-        if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
-            std::string newName = path;
+    if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
+        std::string newName = path;
+        try {
             this->files[path] = new File(&newName, getuid(), getgid(), mode);
-        } else if (this->files.size() >= NUM_DIR_ENTRIES) {
-            ret = -ENOSPC;
-        } else {
-            ret = -EEXIST;
+        } catch (const std::exception &e) {
+            LOGF("Error creating new file: %s", e.what());
+            RETURN(-EINVAL);
         }
+    } else if (this->files.size() >= NUM_DIR_ENTRIES) {
+        RETURN(-ENOSPC);
+    } else {
+        RETURN(-EEXIST);
+    }
 
-        RETURN(ret);
-    }
-    catch (const std::exception &e) {
-        return EINVAL;
-    }
+    RETURN(0);
 }
 
 /// @brief Delete a file.
