@@ -50,9 +50,9 @@ MyInMemoryFS::MyInMemoryFS() : MyFS() {
 ///
 /// You may add your own destructor code here.
 MyInMemoryFS::~MyInMemoryFS() {
-
-    // TODO: [PART 1] Add your cleanup code here
-
+    for (auto const& item : files) {
+        delete item.second;
+    }
 }
 
 /// @brief Create a new file.
@@ -411,12 +411,9 @@ void* MyInMemoryFS::fuseInit(struct fuse_conn_info *conn) {
 /// This function is called when the file system is unmounted. You may add some cleanup code here.
 void MyInMemoryFS::fuseDestroy() {
     LOGM();
-    //TODO no clue if this works
     for (auto const& item : files) {
         delete item.second;
     }
-    files.clear();
-    openFiles.clear();
 }
 
 // TODO: [PART 1] You may add your own additional methods here!
