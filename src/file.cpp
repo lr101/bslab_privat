@@ -60,7 +60,7 @@ int File::setName(std::string *name) {
 int File::setSize(off_t size) {
     if (size < 0) return -EINVAL;
     this->size = size;
-    std::realloc(this->data, this->size);
+    this->data = (char*) std::realloc(this->data, this->size);
     setMTime();
     return 0;
 }
