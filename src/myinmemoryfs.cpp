@@ -275,8 +275,13 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
     LOGF( "Trying to read %s, %lu, %lu\n", path, (unsigned long) offset, size );
-    if (openFiles.find(path) == openFiles.end()) {RETURN(-EBADF);}
-    RETURN(openFiles[path]->getData(offset, buf));
+    auto itPath = this->files.find(path);
+
+    if (itPath != this->files.end()) {
+        RETURN(itPath->second->getData(offset, buf, size));
+    } else {
+        RETURN(-ENOENT);
+    }
 }
 
 /// @brief Write to a file.

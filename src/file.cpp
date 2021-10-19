@@ -220,12 +220,12 @@ int File::write(off_t size, const char* data, off_t offset) {
 /// \param offset [in] Offset from the beginning of the data.
 /// \param data [out] Pointer to the requested data.
 /// \returns 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
-int File::getData(off_t offset, char* data) {
+int File::getData(off_t offset, char* data, off_t size) {
     if (!this->open) {return -EBADF;}
     if (offset > this->size) return -EINVAL;
-    *data = *(this->data + offset);
+    std::memcpy(data, this->data + offset, size);
     setATime();
-    return 0;
+    return size;
 }
 /// Get the metadata of a file (user & group id, modification times, permissions, ...).
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
