@@ -115,8 +115,6 @@ int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
 
     // TODO: [PART 1] Implement this!
 
-    LOGF( "\tAttributes of %s requested\n", path );
-
     // GNU's definitions of the attributes (http://www.gnu.org/software/libc/manual/html_node/Attribute-Meanings.html):
     // 		st_uid: 	The user ID of the file’s owner.
     //		st_gid: 	The group ID of the file.
@@ -234,7 +232,6 @@ int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offse
     LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
     // TODO: [PART 1] Implement this!
 
-    LOGF( "--> Trying to read %s, %lu, %lu\n", path, (unsigned long) offset, size );
 
     char file54Text[] = "Hello World From File54!\n";
     char file349Text[] = "Hello World From File349!\n";
