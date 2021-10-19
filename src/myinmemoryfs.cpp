@@ -42,7 +42,6 @@
 ///
 /// You may add your own constructor code here.
 MyInMemoryFS::MyInMemoryFS() : MyFS() {
-    // TODO: [PART 1] Add your constructor code here
 
 }
 
@@ -94,15 +93,13 @@ int MyInMemoryFS::fuseUnlink(const char *path) {
     LOGF("Attributes: path=%s", path);
 
     auto itPath = this->files.find(path);
-    int ret = 0;
 
     if (itPath != this->files.end()) {
         this->files.erase(itPath);
+        RETURN(0);
     } else {
-        ret = -ENOENT;
+        RETURN(-ENOENT);
     }
-
-    RETURN(ret);
 }
 
 /// @brief Rename a file.
@@ -118,16 +115,13 @@ int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
     LOGF("Attributes: path=%s, newpath=%s", path, newpath);
     auto itPath = this->files.find(path);
-    int ret;
 
     if (itPath != this->files.end()) {
         std::string newPath = path;
-        ret = itPath->second->setName(&newPath);
+        RETURN(itPath->second->setName(&newPath));
     } else {
-        ret = -ENOENT;
+        RETURN(-ENOENT);
     }
-
-    RETURN(ret);
 }
 
 /// @brief Get file meta data.
@@ -193,15 +187,12 @@ int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%d", path, mode);
     auto itPath = this->files.find(path);
-    int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setMode(mode);
+        RETURN(itPath->second->setMode(mode));
     } else {
-        ret = -ENOENT;
+        RETURN(-ENOENT);
     }
-
-    RETURN(ret);
 }
 
 /// @brief Change the owner of a file.
@@ -370,7 +361,6 @@ int MyInMemoryFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t fille
     if ( strcmp( path, "/" ) == 0 ) {
         for (auto const& item : files) {
             filler(buf, (item.first).c_str()+1, NULL, 0);
-            LOGF("Files found:%s",item.first.c_str());
         }
         RETURN(0);
     } else {
