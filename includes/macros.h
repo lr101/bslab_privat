@@ -41,19 +41,17 @@ __LINE__); } while (0)
 
 #ifdef DEBUG_RETURN_VALUES
 #define RETURN(ret) \
-if (ret < 0) {      \
-    const char* text;    \
+do {if (ret < 0) {      \
     switch(ret) {   \
-        case -2:  text = "No such file or directory"; break; \
-        case -22:  text = "Invalid argument"; break; \
-        case -9:  text = "File not open"; break; \
-        case -28:  text = "To many files in directory"; break; \
-        case -18:  text = "File already exists"; break;      \
-        default: text = "ERROR"; break;                \
+        case -2:  fprintf(this->logFile, "No such file or directory\n"); break; \
+        case -22:  fprintf(this->logFile, "Invalid argument\n"); break; \
+        case -9:  fprintf(this->logFile, "File not open\n"); break; \
+        case -28:  fprintf(this->logFile, "To many files in directory\n"); break; \
+        case -18:  fprintf(this->logFile, "File already exists\n"); break;      \
+        default: fprintf(this->logFile, "ERROR\n"); break;                \
     }               \
-    fprintf(this->logFile, "ERROR with code:'%d' : %s", ret, text);                 \
 }        \
-fprintf(this->logFile, "%s() returned %d\n\n------------------------\n", __func__, ret); return ret;
+fprintf(this->logFile, "%s() returned %d\n\n------------------------\n", __func__, ret);} while(0); return ret;
 #else
 #define RETURN(ret) return ret;
 #endif
