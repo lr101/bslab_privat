@@ -66,7 +66,7 @@ MyInMemoryFS::~MyInMemoryFS() {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
-
+    LOGF("Attributes: path=%s, mode=%u", path, mode);
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -80,7 +80,7 @@ int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseUnlink(const char *path) {
     LOGM();
-
+    LOGF("Attributes: path=%s", path);
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -97,7 +97,7 @@ int MyInMemoryFS::fuseUnlink(const char *path) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
-
+    LOGF("Attributes: path=%s, newpath=%s", path, newpath);
     // TODO: [PART 1] Implement this!
 
     return 0;
@@ -111,6 +111,7 @@ int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
 
     // TODO: [PART 1] Implement this!
 
@@ -152,6 +153,15 @@ int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
     else
         ret= -ENOENT;
 
+    if (ret >= 0) {
+        LOGF("Return Attribute: userID=%d", statbuf->st_uid);
+        LOGF("Return Attribute: groupID=%d", statbuf->st_gid);
+        LOGF("Return Attribute: aTime=%ld", statbuf->st_atime);
+        LOGF("Return Attribute: cTime=%ld", statbuf->st_ctime);
+        LOGF("Return Attribute: mTime=%ld", statbuf->st_mtime);
+        LOGF("Return Attribute: mode=%d", statbuf->st_mode);
+        LOGF("Return Attribute: nLink=%lu", statbuf->st_nlink);
+    }
     RETURN(ret);
 }
 
@@ -164,7 +174,7 @@ int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
     LOGM();
-
+    LOGF("Attributes: path=%s, mode=%d", path, mode);
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -180,7 +190,7 @@ int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     LOGM();
-
+    LOGF("Attributes: path=%s, userID=%u, groupID=%u", path, uid, gid);
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -196,7 +206,7 @@ int MyInMemoryFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s", path);
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -221,7 +231,7 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 /// -ERRNO on failure.
 int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
     // TODO: [PART 1] Implement this!
 
     LOGF( "--> Trying to read %s, %lu, %lu\n", path, (unsigned long) offset, size );
@@ -263,7 +273,8 @@ int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offse
 /// \return Number of bytes written on success, -ERRNO on failure.
 int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
+    LOGF("Attributes: buf=%s", buf);
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -277,7 +288,7 @@ int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s, fileInfo=%s", path, "Ignored in Part1");
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -293,7 +304,7 @@ int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo)
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
-
+    LOGF("Attributes: path=%s, newSize=%ld", path, newSize);
     // TODO: [PART 1] Implement this!
 
     return 0;
@@ -311,7 +322,7 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize) {
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
     // TODO: [PART 1] Implement this!
 
     RETURN(0);
@@ -329,7 +340,7 @@ int MyInMemoryFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file
 /// \return 0 on success, -ERRNO on failure.
 int MyInMemoryFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
-
+    LOGF("Attributes: path=%s", path);
     // TODO: [PART 1] Implement this!
 
     LOGF( "--> Getting The List of Files of %s\n", path );
@@ -341,6 +352,7 @@ int MyInMemoryFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t fille
     {
         filler( buf, "file54", NULL, 0 );
         filler( buf, "file349", NULL, 0 );
+        //LOGF("Return Attribute:%s",item.first.c_str());
     }
 
     RETURN(0);
@@ -377,7 +389,8 @@ void MyInMemoryFS::fuseDestroy() {
     LOGM();
 
     // TODO: [PART 1] Implement this!
-
+    LOGF("Clear %s", "files");
+    LOGF("Clear %s", "openFiles");
 }
 
 // TODO: [PART 1] You may add your own additional methods here!
