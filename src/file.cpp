@@ -125,7 +125,7 @@ int File::setOpen() {
 /// Close the file.
 /// \returns 0 on success, -EINVAL If the file is already closed.
 int File::setClose() {
-    if (!this->open) return -EINVAL; //TODO: or -EBADF ?
+    if (!this->open) return -EBADF;
     this->open = false;
     return 0;
 }
