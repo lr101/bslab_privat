@@ -52,7 +52,7 @@ public:
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
     bool isOpen();
-    int getData(off_t, char*);
+    int getData(off_t, char*, off_t);
     int getMetadata(struct stat*);
 };
 
