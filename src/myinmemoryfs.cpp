@@ -43,17 +43,15 @@
 /// You may add your own constructor code here.
 MyInMemoryFS::MyInMemoryFS() : MyFS() {
 
-    // TODO: [PART 1] Add your constructor code here
-
 }
 
 /// @brief Destructor of the in-memory file system class.
 ///
 /// You may add your own destructor code here.
 MyInMemoryFS::~MyInMemoryFS() {
-
-    // TODO: [PART 1] Add your cleanup code here
-
+    for (auto const& item : files) {
+        delete item.second;
+    }
 }
 
 /// @brief Create a new file.
@@ -67,22 +65,21 @@ MyInMemoryFS::~MyInMemoryFS() {
 int MyInMemoryFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
-
-    int ret = 0;
-    try {
-        if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
-            std::string newName = path;
+    if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
+        std::string newName = path;
+        try {
             this->files[path] = new File(&newName, getuid(), getgid(), mode);
-        } else if (this->files.size() >= NUM_DIR_ENTRIES) {
-            ret = -ENOSPC;
-        } else {
-            ret = -EEXIST;
+        } catch (const std::exception &e) {
+            LOGF("Error creating new file: %s", e.what());
+            RETURN(-EINVAL);
         }
-        RETURN(ret);
+    } else if (this->files.size() >= NUM_DIR_ENTRIES) {
+        RETURN(-ENOSPC);
+    } else {
+        RETURN(-EEXIST);
     }
-    catch (const std::exception &e) {
-        return EINVAL;
-    }
+
+    RETURN(0);
 }
 
 /// @brief Delete a file.
@@ -96,15 +93,13 @@ int MyInMemoryFS::fuseUnlink(const char *path) {
     LOGF("Attributes: path=%s", path);
 
     auto itPath = this->files.find(path);
-    int ret = 0;
 
     if (itPath != this->files.end()) {
         this->files.erase(itPath);
+        RETURN(0);
     } else {
-        ret = -ENOENT;
+        RETURN(-ENOENT);
     }
-
-    RETURN(ret);
 }
 
 /// @brief Rename a file.
@@ -119,19 +114,15 @@ int MyInMemoryFS::fuseUnlink(const char *path) {
 int MyInMemoryFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
     LOGF("Attributes: path=%s, newpath=%s", path, newpath);
-    // TODO: [PART 1] Implement this!
 
     auto itPath = this->files.find(path);
-    int ret;
 
     if (itPath != this->files.end()) {
         std::string newPath = path;
-        ret = itPath->second->setName(&newPath);
+        RETURN(itPath->second->setName(&newPath));
     } else {
-        ret = -ENOENT;
+        RETURN(-ENOENT);
     }
-
-    RETURN(ret);
 }
 
 /// @brief Get file meta data.
@@ -167,13 +158,13 @@ int MyInMemoryFS::fuseGetattr(const char *path, struct stat *statbuf) {
         statbuf->st_gid = getgid();
         statbuf->st_atime = time(NULL);
         statbuf->st_mtime = time(NULL);
+        statbuf->st_ctime = time(NULL);
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2; // Why "two" hardlinks instead of "one"? The answer is here: http://unix.stackexchange.com/a/101536
     } else if (itPath != this->files.end()) {
         ret = itPath->second->getMetadata(statbuf);
     } else
         ret = -ENOENT;
-
     if (ret >= 0) {
         LOGF("Return Attribute: userID=%d", statbuf->st_uid);
         LOGF("Return Attribute: groupID=%d", statbuf->st_gid);
@@ -198,15 +189,12 @@ int MyInMemoryFS::fuseChmod(const char *path, mode_t mode) {
     LOGF("Attributes: path=%s, mode=%d", path, mode);
 
     auto itPath = this->files.find(path);
-    int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setMode(mode);
+        RETURN(itPath->second->setMode(mode));
     } else {
-        ret = -ENOENT;
+        RETURN(-ENOENT);
     }
-
-    RETURN(ret);
 }
 
 /// @brief Change the owner of a file.
@@ -251,9 +239,6 @@ int MyInMemoryFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 
     if (itPath != this->files.end()) {
         ret = itPath->second->setOpen();
-        if (!ret) {
-            this->openFiles[path] = itPath->second;
-        }
     } else {
         ret = -ENOENT;
     }
@@ -313,7 +298,6 @@ int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_
 
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-
     RETURN(curFile->second->write(size, buf, offset));
 }
 
@@ -328,8 +312,6 @@ int MyInMemoryFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo)
     LOGF("Attributes: path=%s, fileInfo=%s", path, "Ignored in Part1");
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    if (!(curFile->second->isOpen())) {RETURN(-EBADF);}
-    openFiles.erase(path);
     RETURN(curFile->second->setClose());
 }
 
@@ -426,8 +408,6 @@ void MyInMemoryFS::fuseDestroy() {
     for (auto const& item : files) {
         delete item.second;
     }
-    files.clear();
-    openFiles.clear();
 }
 
 // TODO: [PART 1] You may add your own additional methods here!
