@@ -70,6 +70,26 @@ TEST_CASE("T-f1.0") {
     REQUIRE(retA == 0);
     REQUIRE(retC == 0);
     REQUIRE(retM == 0);
+    //test open
+    REQUIRE(file->isOpen() == false);
+    //storage management
+    delete file;
 }
 
+TEST_CASE("T-f1.1") {
+    printf("Testcase f-1.1: Check setName() Method");
+    //init
+    File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+    std::string newName = "name1234";
+    ret = file->setName(&newName);
+    //short name
+    ret = file->setName(&newName);
+    REQUIRE(ret == 0);
+    ret = file->getName(&testName);
+    REQUIRE(strcmp(newName.c_str(), testName.c_str()));
+    //no change to pointer content
+
+    //long name
+
+}
 
