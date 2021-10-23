@@ -81,15 +81,26 @@ TEST_CASE("T-f1.1") {
     //init
     File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
     std::string newName = "name1234";
+    int ret;
+    //set name
     ret = file->setName(&newName);
-    //short name
     ret = file->setName(&newName);
     REQUIRE(ret == 0);
-    ret = file->getName(&testName);
-    REQUIRE(strcmp(newName.c_str(), testName.c_str()));
     //no change to pointer content
-
+    REQUIRE(strcmp(newName.c_str(), "name1234") == 0);
+    //short name
+    ret = file->getName(&testName);
+    REQUIRE(strcmp(newName.c_str(), testName.c_str()) == 0);
     //long name
-
+    char* longName = new char[NAME_LENGTH + 2];
+    longName[NAME_LENGTH + 1] = '\0';
+    std::string longString = std::string(longName);
+    ret = file->setName(&longString);
+    REQUIRE(ret == -EINVAL);
+    ret = file->getName(&testName);
+    REQUIRE(ret == 0);
+    REQUIRE(strcmp(testName.c_str(), newName.c_str()) == 0);
+    delete file;
+    delete[] longName;
 }
 
