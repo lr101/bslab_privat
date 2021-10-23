@@ -92,15 +92,24 @@ TEST_CASE("T-f1.1") {
     ret = file->getName(&testName);
     REQUIRE(strcmp(newName.c_str(), testName.c_str()) == 0);
     //long name
-    char* longName = new char[NAME_LENGTH + 2];
-    longName[NAME_LENGTH + 1] = '\0';
-    std::string longString = std::string(longName);
+    std::string longString = "i";
+    for (int i = 0; i < NAME_LENGTH + 2; i++) {
+        longString.append("i");
+    }
     ret = file->setName(&longString);
     REQUIRE(ret == -EINVAL);
+    //check if name didnt change with longName
     ret = file->getName(&testName);
     REQUIRE(ret == 0);
     REQUIRE(strcmp(testName.c_str(), newName.c_str()) == 0);
     delete file;
-    delete[] longName;
+}
+
+TEST_CASE("T-f1.2") {
+    printf("Testcase f-1.2: Check setSize() Method");
+    File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+
+
+    delete file;
 }
 
