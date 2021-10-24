@@ -107,9 +107,22 @@ TEST_CASE("T-f1.1") {
 
 TEST_CASE("T-f1.2") {
     printf("Testcase f-1.2: Check setSize() Method");
+    //init
     File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
-
-
+    int ret;
+    off_t retSize = 0;
+    //new Size
+    ret = file->setSize(100);
+    REQUIRE(ret == 0);
+    ret = file->getSize(&retSize);
+    REQUIRE(ret == 0);
+    REQUIRE(100 == retSize);
+    // negative size
+    ret = file->setSize(-1);
+    REQUIRE(ret == -EINVAL);
+    ret = file->getSize(&retSize);
+    REQUIRE(ret == 0);
+    REQUIRE(100 == retSize);
     delete file;
 }
 
