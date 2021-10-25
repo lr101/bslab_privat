@@ -403,8 +403,7 @@ void* MyInMemoryFS::fuseInit(struct fuse_conn_info *conn) {
 /// This function is called when the file system is unmounted. You may add some cleanup code here.
 void MyInMemoryFS::fuseDestroy() {
     LOGM();
-    LOGF("Clear %s", "files");
-    LOGF("Clear %s", "openFiles");
+    LOGF("Delete files from file map");
     for (auto const& item : files) {
         delete item.second;
     }
