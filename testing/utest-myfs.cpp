@@ -77,13 +77,12 @@ TEST_CASE("T-f1.0") {
 }
 
 TEST_CASE("T-f1.1") {
-    printf("Testcase f-1.1: Check setName() Method");
+    printf("Testcase f-1.1: Check setName() Method\n");
     //init
     File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
     std::string newName = "name1234";
     int ret;
     //set name
-    ret = file->setName(&newName);
     ret = file->setName(&newName);
     REQUIRE(ret == 0);
     //no change to pointer content
@@ -106,7 +105,7 @@ TEST_CASE("T-f1.1") {
 }
 
 TEST_CASE("T-f1.2") {
-    printf("Testcase f-1.2: Check setSize() Method");
+    printf("Testcase f-1.2: Check setSize() Method\n");
     //init
     File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
     int ret;
@@ -117,12 +116,18 @@ TEST_CASE("T-f1.2") {
     ret = file->getSize(&retSize);
     REQUIRE(ret == 0);
     REQUIRE(100 == retSize);
-    // negative size
+    //negative size
     ret = file->setSize(-1);
     REQUIRE(ret == -EINVAL);
     ret = file->getSize(&retSize);
     REQUIRE(ret == 0);
     REQUIRE(100 == retSize);
+    //check if realloc worked
+
     delete file;
+}
+
+TEST_CASE("T-f1.3") {
+    printf("Testcase f-1.3: Check setUserID() Method\n");
 }
 
