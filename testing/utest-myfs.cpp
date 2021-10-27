@@ -122,12 +122,89 @@ TEST_CASE("T-f1.2") {
     ret = file->getSize(&retSize);
     REQUIRE(ret == 0);
     REQUIRE(100 == retSize);
-    //check if realloc worked
-
+    //check if realloc worked later in write
     delete file;
 }
 
 TEST_CASE("T-f1.3") {
     printf("Testcase f-1.3: Check setUserID() Method\n");
+    //init
+    File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+    cmpUid = 100;
+    int ret;
+    //test
+    ret = file->setUserID(cmpUid);
+    REQUIRE(ret  == 0);
+    ret = file->getUserID(&testUid);
+    REQUIRE(ret == 0);
+    REQUIRE(testUid == cmpUid);
+
+    delete file;
 }
 
+
+TEST_CASE("T-f1.4") {
+    printf("Testcase f-1.4: Check setGroupID() Method\n");
+    //init
+    File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+    cmpGid = 200;
+    int ret;
+    //test
+    ret = file->setGroupID(cmpGid);
+    REQUIRE(ret  == 0);
+    ret = file->getGroupID(&testGid);
+    REQUIRE(ret == 0);
+    REQUIRE(testGid == cmpGid);
+
+    delete file;
+}
+
+TEST_CASE("T-f1.5") {
+    printf("Testcase f-1.5: Check setMode() Method\n");
+    //init
+    File* file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+    cmpMode = 300;
+    int ret;
+    //test
+    ret = file->setMode(cmpMode);
+    REQUIRE(ret  == 0);
+    ret = file->getMode(&testMode);
+    REQUIRE(ret == 0);
+    REQUIRE(testMode == cmpMode);
+
+    delete file;
+}
+
+TEST_CASE("T-f1.6") {
+    printf("Testcase f-1.6: Check setOpen() Method\n");
+    //init
+    File *file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+    int ret;
+    //test
+    ret = file->setOpen();
+    REQUIRE(ret == 0);
+    REQUIRE(file->isOpen());
+    ret = file->setOpen();
+    REQUIRE(ret == -EBADF);
+    ret = file->setOpen();
+    REQUIRE(ret == -EBADF);
+    delete file;
+}
+
+TEST_CASE("T-f1.7") {
+    printf("Testcase f-1.7: Check setClosed() Method\n");
+    //init
+    File *file = new File(&cmpName, cmpUid, cmpGid, cmpMode);
+    int ret;
+    //test
+    ret = file->setOpen();
+    REQUIRE(ret == 0);
+    REQUIRE(file->isOpen());
+    ret = file->setClose();
+    REQUIRE(ret == 0);
+    REQUIRE(file->isOpen() == false);
+    ret = file->setClose();
+    REQUIRE(ret == -EBADF);
+    REQUIRE(file->isOpen() == false);
+    delete file;
+}
