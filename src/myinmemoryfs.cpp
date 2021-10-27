@@ -297,7 +297,6 @@ int MyInMemoryFS::fuseRead(const char *path, char *buf, size_t size, off_t offse
 int MyInMemoryFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
     LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
-    LOGF("Attributes: buf=%s", buf);
 
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
