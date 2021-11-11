@@ -40,7 +40,6 @@ public:
     int setMode(mode_t);
     int setOpen();
     int setClose();
-    int append(off_t, char* );
     int write(off_t, const char*, off_t);
 
     int getName(std::string*);
