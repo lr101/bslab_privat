@@ -16,7 +16,8 @@ protected:
 public:
     static MyOnDiskFS *Instance();
 
-    // TODO: [PART 1] Add attributes of your file system here
+    std::map<std::string, File*> files;
+    struct s_block s_block;
 
     MyOnDiskFS();
     ~MyOnDiskFS();
@@ -40,8 +41,6 @@ public:
     virtual int fuseReaddir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo);
     virtual int fuseTruncate(const char *path, off_t offset, struct fuse_file_info *fileInfo);
     virtual void fuseDestroy();
-
-    // TODO: Add methods of your file system here
 
 };
 

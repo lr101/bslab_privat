@@ -40,8 +40,9 @@ MyOnDiskFS::MyOnDiskFS() : MyFS() {
 MyOnDiskFS::~MyOnDiskFS() {
     // free block device object
     delete this->blockDevice;
-
-    // TODO: [PART 2] Add your cleanup code here
+    for (auto const& item : files) {
+        delete item.second;
+    }
 
 }
 
@@ -55,8 +56,20 @@ MyOnDiskFS::~MyOnDiskFS() {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
-
-    // TODO: [PART 2] Implement this!
+    LOGF("Attributes: path=%s, mode=%u", path, mode);
+    if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
+        std::string newName = path;
+        try {
+            this->files[path] = new File(&newName, getuid(), getgid(), mode);
+        } catch (const std::exception &e) {
+            LOGF("Error creating new file: %s", e.what());
+            RETURN(-EINVAL);
+        }
+    } else if (this->files.size() >= NUM_DIR_ENTRIES) {
+        RETURN(-ENOSPC);
+    } else {
+        RETURN(-EEXIST);
+    }
 
     RETURN(0);
 }
@@ -69,10 +82,16 @@ int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseUnlink(const char *path) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
 
-    // TODO: [PART 2] Implement this!
+    auto itPath = this->files.find(path);
 
-    RETURN(0);
+    if (itPath != this->files.end()) {
+        this->files.erase(itPath);
+        RETURN(0);
+    } else {
+        RETURN(-ENOENT);
+    }
 }
 
 /// @brief Rename a file.
@@ -86,10 +105,19 @@ int MyOnDiskFS::fuseUnlink(const char *path) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
+    LOGF("Attributes: path=%s, newpath=%s", path, newpath);
 
-    // TODO: [PART 2] Implement this!
+    auto itPath = this->files.find(path);
 
-    RETURN(0);
+    if (itPath != this->files.end()) {
+        auto const value = std::move(itPath->second);
+        this->files.erase(itPath);
+        std::string newPathString = std::string(newpath);
+        this->files.insert({newPathString, std::move(value)});
+        RETURN(this->files.find(newpath)->second->setName(&newPathString));
+    } else {
+        RETURN(-ENOENT);
+    }
 }
 
 /// @brief Get file meta data.
@@ -100,10 +128,48 @@ int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseGetattr(const char *path, struct stat *statbuf) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
 
-    // TODO: [PART 2] Implement this!
+    // GNU's definitions of the attributes (http://www.gnu.org/software/libc/manual/html_node/Attribute-Meanings.html):
+    // 		st_uid: 	The user ID of the file’s owner.
+    //		st_gid: 	The group ID of the file.
+    //		st_atime: 	This is the last access time for the file.
+    //		st_mtime: 	This is the time of the last modification to the contents of the file.
+    //		st_mode: 	Specifies the mode of the file. This includes file type information (see Testing File Type) and
+    //		            the file permission bits (see Permission Bits).
+    //		st_nlink: 	The number of hard links to the file. This count keeps track of how many directories have
+    //	             	entries for this file. If the count is ever decremented to zero, then the file itself is
+    //	             	discarded as soon as no process still holds it open. Symbolic links are not counted in the
+    //	             	total.
+    //		st_size:	This specifies the size of a regular file in bytes. For files that are really devices this field
+    //		            isn’t usually meaningful. For symbolic links this specifies the length of the file name the link
+    //		            refers to.
 
-    RETURN(0);
+    auto itPath = this->files.find(path);
+    int ret = 0;
+
+    if (strcmp(path, "/") == 0) {
+        statbuf->st_uid = getuid();
+        statbuf->st_gid = getgid();
+        statbuf->st_atime = time(NULL);
+        statbuf->st_mtime = time(NULL);
+        statbuf->st_ctime = time(NULL);
+        statbuf->st_mode = S_IFDIR | 0755;
+        statbuf->st_nlink = 2; // Why "two" hardlinks instead of "one"? The answer is here: http://unix.stackexchange.com/a/101536
+    } else if (itPath != this->files.end()) {
+        ret = itPath->second->getMetadata(statbuf);
+    } else
+        ret = -ENOENT;
+    if (ret >= 0) {
+        LOGF("Return Attribute: userID=%d", statbuf->st_uid);
+        LOGF("Return Attribute: groupID=%d", statbuf->st_gid);
+        LOGF("Return Attribute: aTime=%ld", statbuf->st_atime);
+        LOGF("Return Attribute: cTime=%ld", statbuf->st_ctime);
+        LOGF("Return Attribute: mTime=%ld", statbuf->st_mtime);
+        LOGF("Return Attribute: mode=%d", statbuf->st_mode);
+        LOGF("Return Attribute: nLink=%lu", statbuf->st_nlink);
+    }
+    RETURN(ret);
 }
 
 /// @brief Change file permissions.
@@ -115,10 +181,15 @@ int MyOnDiskFS::fuseGetattr(const char *path, struct stat *statbuf) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseChmod(const char *path, mode_t mode) {
     LOGM();
+    LOGF("Attributes: path=%s, mode=%d", path, mode);
 
-    // TODO: [PART 2] Implement this!
+    auto itPath = this->files.find(path);
 
-    RETURN(0);
+    if (itPath != this->files.end()) {
+        RETURN(itPath->second->setMode(mode));
+    } else {
+        RETURN(-ENOENT);
+    }
 }
 
 /// @brief Change the owner of a file.
@@ -131,10 +202,19 @@ int MyOnDiskFS::fuseChmod(const char *path, mode_t mode) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     LOGM();
+    LOGF("Attributes: path=%s, userID=%u, groupID=%u", path, uid, gid);
 
-    // TODO: [PART 2] Implement this!
+    auto itPath = this->files.find(path);
+    int ret;
 
-    RETURN(0);
+    if (itPath != this->files.end()) {
+        ret = itPath->second->setUserID(uid);
+        ret |= itPath->second->setGroupID(gid);
+    } else {
+        ret = -ENOENT;
+    }
+
+    RETURN(ret);
 }
 
 /// @brief Open a file.
@@ -147,10 +227,18 @@ int MyOnDiskFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
 
-    // TODO: [PART 2] Implement this!
+    auto itPath = this->files.find(path);
+    int ret;
 
-    RETURN(0);
+    if (itPath != this->files.end()) {
+        ret = itPath->second->setOpen();
+    } else {
+        ret = -ENOENT;
+    }
+
+    RETURN(ret);
 }
 
 /// @brief Read from a file.
@@ -172,10 +260,15 @@ int MyOnDiskFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
 /// -ERRNO on failure.
 int MyOnDiskFS::fuseRead(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
 
-    // TODO: [PART 2] Implement this!
+    auto itPath = this->files.find(path);
 
-    RETURN(0);
+    if (itPath != this->files.end()) {
+        RETURN(itPath->second->getData(offset, buf, size));
+    } else {
+        RETURN(-ENOENT);
+    }
 }
 
 /// @brief Write to a file.
@@ -195,10 +288,11 @@ int MyOnDiskFS::fuseRead(const char *path, char *buf, size_t size, off_t offset,
 /// \return Number of bytes written on success, -ERRNO on failure.
 int MyOnDiskFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
 
-    // TODO: [PART 2] Implement this!
-
-    RETURN(0);
+    auto curFile = files.find(path);
+    if (curFile == files.end()) {RETURN(-ENOENT);}
+    RETURN(curFile->second->write(size, buf, offset));
 }
 
 /// @brief Close a file.
@@ -208,10 +302,10 @@ int MyOnDiskFS::fuseWrite(const char *path, const char *buf, size_t size, off_t 
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGM();
-
-    // TODO: [PART 2] Implement this!
-
-    RETURN(0);
+    LOGF("Attributes: path=%s, fileInfo=%s", path, "Ignored in Part1");
+    auto curFile = files.find(path);
+    if (curFile == files.end()) {RETURN(-ENOENT);}
+    RETURN(curFile->second->setClose());
 }
 
 /// @brief Truncate a file.
@@ -224,10 +318,9 @@ int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
-
-    // TODO: [PART 2] Implement this!
-
-    RETURN(0);
+    LOGF("Attributes: path=%s, newSize=%ld", path, newSize);
+    if (files.find(path) == files.end()) {RETURN(-EBADF);}
+    RETURN(files[path]->setSize(newSize));
 }
 
 /// @brief Truncate a file.
@@ -242,10 +335,9 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_info *fileInfo) {
     LOGM();
-
-    // TODO: [PART 2] Implement this!
-
-    RETURN(0);
+    LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
+    if (files.find(path) == files.end()) {RETURN(-EBADF);}
+    RETURN(files[path]->setSize(newSize));
 }
 
 /// @brief Read a directory.
@@ -260,10 +352,21 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_i
 /// \return 0 on success, -ERRNO on failure.
 int MyOnDiskFS::fuseReaddir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
+    LOGF("Attributes: path=%s", path);
 
-    // TODO: [PART 2] Implement this!
+    filler( buf, ".", NULL, 0 ); // Current Directory
+    filler( buf, "..", NULL, 0 ); // Parent Directory
 
-    RETURN(0);
+    // If the user is trying to show the files/directories of the root directory show the following
+    if ( strcmp( path, "/" ) == 0 ) {
+        for (auto const& item : files) {
+            filler(buf, (item.first).c_str()+1, NULL, 0);
+            LOGF("Return Attribute:%s",item.first.c_str());
+        }
+        RETURN(0);
+    } else {
+        RETURN(-ENOTDIR);
+    }
 }
 
 /// Initialize a file system.
@@ -318,9 +421,10 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
 /// This function is called when the file system is unmounted. You may add some cleanup code here.
 void MyOnDiskFS::fuseDestroy() {
     LOGM();
-
-    // TODO: [PART 2] Implement this!
-
+    LOG("Delete files from file map");
+    for (auto const& item : files) {
+        delete item.second;
+    }
 }
 
 // TODO: [PART 2] You may add your own additional methods here!
