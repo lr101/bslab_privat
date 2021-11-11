@@ -14,16 +14,10 @@
 #define NUM_DIR_ENTRIES 64
 #define NUM_OPEN_FILES 64
 #define NUM_FS_BLOCKS 62500
-#typedef index_t unsigned int
+typedef uint32_t index_t
+
 
 // TODO: Add structures of your file system here
 
-struct s_block {
-    size_t size;
-    index_t d_map_index;
-    index_t i_map_index;
-    index_t inode_index;
-    index_t data_index;
-};
 
 #endif /* myfs_structs_h */
