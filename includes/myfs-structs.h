@@ -14,7 +14,7 @@
 #define NUM_DIR_ENTRIES 64
 #define NUM_OPEN_FILES 64
 #define NUM_FS_BLOCKS 62500
-typedef uint32_t index_t
+
 
 
 // TODO: Add structures of your file system here

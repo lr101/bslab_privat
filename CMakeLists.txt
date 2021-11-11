@@ -18,12 +18,14 @@ add_executable(mount.myfs src/blockdevice.cpp
         src/myondiskfs.cpp
         src/wrap.cpp
         src/mount.myfs.c
+        src/superblock.cpp
         src/file.cpp)
 
 add_executable(unittests src/blockdevice.cpp
         src/myfs.cpp
         src/myinmemoryfs.cpp
         src/myondiskfs.cpp
+        src/superblock.cpp
         testing/main.cpp
         testing/utest-blockdevice.cpp
         testing/utest-myfs.cpp
@@ -36,6 +38,7 @@ add_executable(integrationtests
         src/myfs.cpp
         src/myinmemoryfs.cpp
         src/myondiskfs.cpp
+        src/superblock.cpp
         testing/main.cpp
         testing/itest.cpp
         testing/tools.cpp

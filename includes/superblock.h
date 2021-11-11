@@ -8,6 +8,7 @@
 
 #define BYTE_SIZE 8
 #define SUPERBLOCK_SIZE
+typedef uint32_t index_t;
 
 class Superblock {
     size_t size; //blocks
