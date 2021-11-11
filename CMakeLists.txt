@@ -18,7 +18,8 @@ add_executable(mount.myfs src/blockdevice.cpp
         src/myondiskfs.cpp
         src/wrap.cpp
         src/mount.myfs.c
-        src/file.cpp)
+        src/file.cpp
+        src/inode.cpp)
 
 add_executable(unittests src/blockdevice.cpp
         src/myfs.cpp
@@ -29,7 +30,8 @@ add_executable(unittests src/blockdevice.cpp
         testing/utest-myfs.cpp
         testing/tools.cpp
         testing/itest.cpp
-        src/file.cpp)
+        src/file.cpp
+        src/inode.cpp)
 
 add_executable(integrationtests
         src/blockdevice.cpp
@@ -39,7 +41,8 @@ add_executable(integrationtests
         testing/main.cpp
         testing/itest.cpp
         testing/tools.cpp
-        src/file.cpp)
+        src/file.cpp
+        src/inode.cpp)
 
 find_package(PkgConfig)
 pkg_check_modules(FUSE fuse)
