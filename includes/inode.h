@@ -12,17 +12,32 @@
 
 #include "myfs-structs.h"
 
+#define N_BLOCKS 15;
+
+/**
+ * TODO:
+ * name size check
+ * (or check is last char is '\0')
+ * store name size? no?
+ *
+ * block list
+ * 12? indirekt pointer, 3? indirekt
+ * more level 2 indirekt pointer or one level 3 indirekt pointer
+ *
+ */
+
 class Inode {
-    std::string name;           ///< Path to file
-    off_t size;                 ///< Size of data block
+    size_t blocks;              ///< Amount of used blocks
+    size_t bytes;               ///< Amount of used bytes in the last block
     uid_t uid;                  ///< User identifier
     gid_t gid;                  ///< Group identifier
     mode_t mode;                ///< Permissions for file access
-    std::time_t atime;          ///< Time of last access
-    std::time_t mtime;          ///< Time of last change
-    std::time_t ctime;          ///< Time of last status change
-    char* data;                 ///< Inode content
+    time_t atime;               ///< Time of last access
+    time_t mtime;               ///< Time of last change
+    time_t ctime;               ///< Time of last status change
     bool open = false;          ///< True if file is open
+    char* name;                 ///< Name of file
+    size_t block[N_BLOCKS];     ///< Block List, pointer to either blocks or more pointer
 
     int setATime();
     int setMTime();
