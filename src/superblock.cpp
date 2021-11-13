@@ -6,18 +6,40 @@
 
 Superblock::Superblock(size_t size, size_t i_node_num) {
     this->size = size;
-    size_t i_map_size = cal_imap_size(i_node_num);
-    size_t d_map_size = cal_dmap_size(size - i_node_num - i_map_index);
+    size_t i_map_size = calImapSize(i_node_num);
+    size_t d_map_size = calDmapSize(size - i_node_num - i_map_index);
     this->i_map_index = SUPERBLOCK_SIZE + d_map_size;
     this->i_node_index = this->i_map_index + i_map_size;
     this->data_index  = this->i_node_index + i_node_num;
 }
 
-size_t Superblock::cal_imap_size (size_t i_node_num) {
-    return ceil((double) i_node_num/(BYTE_SIZE * BLOCK_SIZE));
+Superblock::~Superblock() = default;
+
+size_t Superblock::calImapSize (size_t i_node_num) {
+    return static_cast<size_t>(ceil(static_cast<double>(i_node_num) / static_cast<double>((BYTE_SIZE * BLOCK_SIZE))));
 }
 
-size_t Superblock::cal_dmap_size (size_t size) {
-    return ceil((double) size/(BYTE_SIZE * BLOCK_SIZE + 1));    //Bo ja tak powiedzialem. Kurwa.
+size_t Superblock::calDmapSize (size_t size) {
+    return static_cast<size_t>(ceil(static_cast<double>(size) / static_cast<double>((BYTE_SIZE * BLOCK_SIZE + 1))));    //Bo ja tak powiedzialem. Kurwa.
+}
+
+size_t Superblock::getSize() {
+    return this->size;
+}
+
+index_t Superblock::getDMapIndex() {
+    return D_MAP_INDEX;
+}
+
+index_t Superblock::getIMapIndex() {
+    return this->i_map_index;
+}
+
+index_t Superblock::getINodeIndex() {
+    return this->i_node_index;
+}
+
+index_t Superblock::getDataIndex() {
+    return this->data_index;
 }
 
