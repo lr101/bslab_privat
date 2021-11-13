@@ -6,9 +6,10 @@
 #ifndef MYFS_MYONDISKFS_H
 #define MYFS_MYONDISKFS_H
 
-#include <fuse.h>
 #include <cmath>
 #include <map>
+#include <cstdio>
+#include <cstring>
 
 #include "myfs.h"
 #include "blockdevice.h"
@@ -19,13 +20,14 @@
 /// @brief On-disk implementation of a simple file system.
 class MyOnDiskFS : public MyFS {
 protected:
-    // BlockDevice blockDevice;
+    BlockDevice* blockDevice;
 
 public:
     static MyOnDiskFS *Instance();
 
     std::map<std::string, File*> files;
     Superblock* s_block;
+    char* puffer;
 
     MyOnDiskFS();
     ~MyOnDiskFS();

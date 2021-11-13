@@ -29,7 +29,7 @@
 MyOnDiskFS::MyOnDiskFS() : MyFS() {
     // create a block device object
     this->blockDevice= new BlockDevice(BLOCK_SIZE);
-
+    this->puffer = new char[BLOCK_SIZE] ();
     // TODO: [PART 2] Add your constructor code here
 
 }
@@ -40,6 +40,7 @@ MyOnDiskFS::MyOnDiskFS() : MyFS() {
 MyOnDiskFS::~MyOnDiskFS() {
     // free block device object
     delete this->blockDevice;
+    delete this->puffer;
     for (auto const& item : files) {
         delete item.second;
     }
@@ -393,26 +394,33 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
 
         if(ret >= 0) {
             LOG("Container file does exist, reading");
-
-
-
+            this->s_block = (Superblock*) malloc(sizeof(Superblock));
+            ret = this->blockDevice->read(0, puffer);
+            std::memcpy(this->s_block, this->puffer, sizeof(Superblock));
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
-
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);
-
             if (ret >= 0) {
                 this->s_block = new Superblock(NUM_FS_BLOCKS, NUM_DIR_ENTRIES);
-                LOGF("size %d", this->s_block);
+                std::memcpy(puffer, this->s_block, sizeof(*this->s_block));
+                this->blockDevice->write(0, puffer);
             }
         }
 
         if(ret < 0) {
             LOGF("ERROR: Access to container file failed with error %d", ret);
+        } else {
+            LOG("Created Superblock with the following block index's:");
+            LOGF("DMapIndex: %d", this->s_block->getDMapIndex());
+            LOGF("IMapIndex %d", this->s_block->getIMapIndex());
+            LOGF("INodeIndex %d", this->s_block->getINodeIndex());
+            LOGF("DataIndex: %d", this->s_block->getDataIndex());
+            LOGF("Size: %d", this->s_block->getSize());
+            LOGF("Bytes: %d", sizeof(*this->s_block));
         }
      }
 
-    return 0;
+    RETURN(0);
 }
 
 /// @brief Clean up a file system.
