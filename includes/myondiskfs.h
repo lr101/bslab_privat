@@ -6,7 +6,15 @@
 #ifndef MYFS_MYONDISKFS_H
 #define MYFS_MYONDISKFS_H
 
+#include <fuse.h>
+#include <cmath>
+#include <map>
+
 #include "myfs.h"
+#include "blockdevice.h"
+#include "myfs-structs.h"
+#include "file.h"
+#include "superblock.h"
 
 /// @brief On-disk implementation of a simple file system.
 class MyOnDiskFS : public MyFS {
@@ -17,7 +25,7 @@ public:
     static MyOnDiskFS *Instance();
 
     std::map<std::string, File*> files;
-    struct s_block s_block;
+    Superblock* s_block;
 
     MyOnDiskFS();
     ~MyOnDiskFS();

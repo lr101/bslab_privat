@@ -394,7 +394,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
         if(ret >= 0) {
             LOG("Container file does exist, reading");
 
-            // TODO: [PART 2] Read existing structures form file
+
 
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
@@ -402,9 +402,8 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);
 
             if (ret >= 0) {
-
-                // TODO: [PART 2] Create empty structures in file
-
+                this->s_block = new Superblock(NUM_FS_BLOCKS, NUM_DIR_ENTRIES);
+                LOGF("size %d", this->s_block);
             }
         }
 
