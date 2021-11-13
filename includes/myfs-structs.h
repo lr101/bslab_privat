@@ -14,6 +14,7 @@
 #define NUM_DIR_ENTRIES 64
 #define NUM_OPEN_FILES 64
 #define NUM_FS_BLOCKS 62500
+#define INDEX_SUPERBLOCK 0
 
 
 

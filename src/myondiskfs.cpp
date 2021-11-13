@@ -395,7 +395,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
         if(ret >= 0) {
             LOG("Container file does exist, reading");
             this->s_block = (Superblock*) malloc(sizeof(Superblock));
-            ret = this->blockDevice->read(0, puffer);
+            ret = this->blockDevice->read(INDEX_SUPERBLOCK, puffer);
             std::memcpy(this->s_block, this->puffer, sizeof(Superblock));
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
@@ -403,7 +403,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             if (ret >= 0) {
                 this->s_block = new Superblock(NUM_FS_BLOCKS, NUM_DIR_ENTRIES);
                 std::memcpy(puffer, this->s_block, sizeof(*this->s_block));
-                this->blockDevice->write(0, puffer);
+                this->blockDevice->write(INDEX_SUPERBLOCK, puffer);
             }
         }
 
@@ -429,6 +429,8 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
 void MyOnDiskFS::fuseDestroy() {
     LOGM();
     LOG("Delete files from file map");
+    delete this->s_block;
+    delete this->puffer;
     for (auto const& item : files) {
         delete item.second;
     }
