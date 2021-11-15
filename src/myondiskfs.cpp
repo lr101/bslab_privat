@@ -417,7 +417,6 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             LOGF("INodeIndex %d", this->s_block->getINodeIndex());
             LOGF("DataIndex: %d", this->s_block->getDataIndex());
             LOGF("Size: %d", this->s_block->getSize());
-            LOGF("Bytes: %d", sizeof(*this->s_block));
         }
      }
 
