@@ -12,26 +12,28 @@ include_directories(includes)
 
 add_definitions("-Wall -DFUSE_USE_VERSION=26")
 
-add_executable(mount.myfs src/blockdevice.cpp
+add_executable(mount.myfs
+        src/blockdevice.cpp
         src/myfs.cpp
         src/myinmemoryfs.cpp
         src/myondiskfs.cpp
+        src/superblock.cpp
+        src/file.cpp
         src/wrap.cpp
-        src/mount.myfs.c
-        src/superblock.cpp
-        src/file.cpp)
+        src/mount.myfs.c)
 
-add_executable(unittests src/blockdevice.cpp
+add_executable(unittests
+        src/blockdevice.cpp
         src/myfs.cpp
         src/myinmemoryfs.cpp
         src/myondiskfs.cpp
         src/superblock.cpp
+        src/file.cpp
         testing/main.cpp
         testing/utest-blockdevice.cpp
         testing/utest-myfs.cpp
         testing/tools.cpp
-        testing/itest.cpp
-        src/file.cpp)
+        testing/itest.cpp)
 
 add_executable(integrationtests
         src/blockdevice.cpp
@@ -39,10 +41,10 @@ add_executable(integrationtests
         src/myinmemoryfs.cpp
         src/myondiskfs.cpp
         src/superblock.cpp
+        src/file.cpp
         testing/main.cpp
         testing/itest.cpp
-        testing/tools.cpp
-        src/file.cpp)
+        testing/tools.cpp)
 
 find_package(PkgConfig)
 pkg_check_modules(FUSE fuse)
