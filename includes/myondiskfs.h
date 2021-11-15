@@ -25,7 +25,7 @@ protected:
 public:
     static MyOnDiskFS *Instance();
 
-    std::map<std::string, File*> files;
+    std::map<std::string, InodePointer*> files;
     Superblock* s_block;
     char* puffer;
 
@@ -52,6 +52,7 @@ public:
     virtual int fuseTruncate(const char *path, off_t offset, struct fuse_file_info *fileInfo);
     virtual void fuseDestroy();
 
+    int getFreeINodeIndex();
 };
 
 #endif //MYFS_MYONDISKFS_H
