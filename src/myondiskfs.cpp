@@ -412,11 +412,11 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             LOGF("ERROR: Access to container file failed with error %d", ret);
         } else {
             LOG("Created Superblock with the following block index's:");
-            LOGF("DMapIndex: %d", this->s_block->getDMapIndex());
-            LOGF("IMapIndex %d", this->s_block->getIMapIndex());
-            LOGF("INodeIndex %d", this->s_block->getINodeIndex());
-            LOGF("DataIndex: %d", this->s_block->getDataIndex());
-            LOGF("Size: %d", this->s_block->getSize());
+            LOGF("DMapIndex: %u", this->s_block->getDMapIndex());
+            LOGF("IMapIndex %u", this->s_block->getIMapIndex());
+            LOGF("INodeIndex %u", this->s_block->getINodeIndex());
+            LOGF("DataIndex: %u", this->s_block->getDataIndex());
+            LOGF("Size: %lu", this->s_block->getSize());
         }
      }
 
@@ -446,8 +446,7 @@ void MyOnDiskFS::fuseDestroy() {
 /// \return 0 on success -ERRNO on failure.
 
 int MyOnDiskFS::loadINodes() {
-    int iMapIndex = this->s_block->getIMapIndex();
-    int ret  = this->blockDevice->read(this->s_block->getDMapIndex(), puffer);
+    int ret  = this->blockDevice->read(this->s_block->getIMapIndex(), puffer);
     if (ret >= 0) {
         for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
             if (((*puffer >> indexBit) & 1) == 1) {
