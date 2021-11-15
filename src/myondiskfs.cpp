@@ -397,6 +397,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             this->s_block = (Superblock*) malloc(sizeof(Superblock));
             ret = this->blockDevice->read(INDEX_SUPERBLOCK, puffer);
             std::memcpy(this->s_block, this->puffer, sizeof(Superblock));
+            ret = this->loadINodes();
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);
@@ -437,6 +438,40 @@ void MyOnDiskFS::fuseDestroy() {
 }
 
 // TODO: [PART 2] You may add your own additional methods here!
+
+int MyOnDiskFS::loadINodes() {
+    int iMapIndex = this->s_block->getIMapIndex();
+    int iNodeIndex = this->s_block->getINodeIndex();
+    int indexInodes = 0;
+    int ret = 0;
+    for (; iMapIndex < iNodeIndex; iMapIndex++) {
+        ret  = this->blockDevice->read(this->s_block->getDMapIndex(), puffer);
+        for (int indexBit = 0; indexBit < (BYTE_SIZE * BLOCK_SIZE) && indexInodes < NUM_DIR_ENTRIES; indexBit++, indexInodes++) {
+            if (((*puffer >> indexBit) & 1) == 1) {
+                struct InodePointer* ip = this->getINode(this->s_block->getINodeIndex() + indexInodes);
+                std::string path;
+                ret = ip->inode->getName(&path);
+                if (ret >= 0) {
+                    this->files[path] = ip;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+struct InodePointer* MyOnDiskFS::getINode(index_t blockNo) {
+    InodePointer* ip = new struct InodePointer();
+    ip->inode = (Inode*) malloc(sizeof(Inode));
+    ip->blockNo = blockNo;
+    ip->blockDevice = this->blockDevice;
+    char* buf = new char[BLOCK_SIZE] ();
+    this->blockDevice->read(blockNo, buf);
+    std::memcpy(ip->inode, buf, sizeof(Inode));
+    return ip;
+}
+
+
 
 // DO NOT EDIT ANYTHING BELOW THIS LINE!!!
 
