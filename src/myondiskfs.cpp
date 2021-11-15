@@ -439,19 +439,26 @@ void MyOnDiskFS::fuseDestroy() {
 
 // TODO: [PART 2] You may add your own additional methods here!
 
+/// Load INodes from BlockDevice
+///
+/// This function is called when the file system is mounted and a container does already exits.
+/// All Inodes from the container are loaded into the inmemory file system
+/// \param
+/// \return 0 on success -ERRNO on failure.
+
 int MyOnDiskFS::loadINodes() {
     int iMapIndex = this->s_block->getIMapIndex();
-    int iNodeIndex = this->s_block->getINodeIndex();
-    int indexInodes = 0;
-    int ret = 0;
-    for (; iMapIndex < iNodeIndex; iMapIndex++) {
-        ret  = this->blockDevice->read(this->s_block->getDMapIndex(), puffer);
-        for (int indexBit = 0; indexBit < (BYTE_SIZE * BLOCK_SIZE) && indexInodes < NUM_DIR_ENTRIES; indexBit++, indexInodes++) {
+    int ret  = this->blockDevice->read(this->s_block->getDMapIndex(), puffer);
+    if (ret >= 0) {
+        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
             if (((*puffer >> indexBit) & 1) == 1) {
-                struct InodePointer* ip = this->getINode(this->s_block->getINodeIndex() + indexInodes);
-                std::string path;
-                ret = ip->inode->getName(&path);
+
+                auto *ip = new struct InodePointer();
+                ret = this->getINode(this->s_block->getINodeIndex() + indexBit, ip);
+
                 if (ret >= 0) {
+                    std::string path;
+                    ret = ip->inode->getName(&path);
                     this->files[path] = ip;
                 }
             }
@@ -460,15 +467,21 @@ int MyOnDiskFS::loadINodes() {
     return ret;
 }
 
-struct InodePointer* MyOnDiskFS::getINode(index_t blockNo) {
-    InodePointer* ip = new struct InodePointer();
+/// Load read INode from a given block into an INodePointer
+///
+/// This function reads an INode from a given blockNo into an INodePointer from the container
+///
+/// \param blockNo [in] block number in BLockDevice
+/// \param ip [out] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
+/// \return 0 on success
+int MyOnDiskFS::getINode(index_t blockNo, InodePointer* ip) {
     ip->inode = (Inode*) malloc(sizeof(Inode));
     ip->blockNo = blockNo;
     ip->blockDevice = this->blockDevice;
-    char* buf = new char[BLOCK_SIZE] ();
-    this->blockDevice->read(blockNo, buf);
+    char buf [BLOCK_SIZE];
+    (void) this->blockDevice->read(blockNo, buf);
     std::memcpy(ip->inode, buf, sizeof(Inode));
-    return ip;
+    return 0;
 }
 
 

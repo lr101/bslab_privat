@@ -54,7 +54,7 @@ public:
 
     int loadINodes();
 
-    struct InodePointer* getINode(index_t);
+    int getINode(index_t, InodePointer*);
 
 };
 
