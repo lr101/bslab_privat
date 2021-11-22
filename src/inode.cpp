@@ -249,18 +249,16 @@ int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::v
     for (uint32_t i = startBlockIndex; i <= endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
             blockList->push_back(this->block[i]);
-        } else if (i < DIR_BLOCK + IND_BLOCK * N_BLOCK_PTR) {
+        } else if (i -= DIR_BLOCK < IND_BLOCK * N_BLOCK_PTR) {
             char *buffer = new char[BLOCK_SIZE];
-            inodePtr->blockDevice->read(this->block[(i - DIR_BLOCK) / N_BLOCK_PTR + DIR_BLOCK], buffer);
-            blockList->push_back(*(uint32_t *) (buffer + i % IND_BLOCK - DIR_BLOCK));
+            inodePtr->blockDevice->read(this->block[(i >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
+            blockList->push_back(*(uint32_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
-        } else if (i < DIR_BLOCK + IND_BLOCK * N_BLOCK_PTR + DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
+        } else if (i -= IND_BLOCK * N_BLOCK_PTR < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
             char *buffer = new char[BLOCK_SIZE];
-            inodePtr->blockDevice->read(this->block[(i - DIR_BLOCK - IND_BLOCK * N_BLOCK_PTR)
-                                                        / (N_BLOCK_PTR * N_BLOCK_PTR)
-                                                        + DIR_BLOCK + IND_BLOCK * N_BLOCK_PTR], buffer);
-            inodePtr->blockDevice->read(buffer[(i - DIR_BLOCK - IND_BLOCK * N_BLOCK_PTR) / N_BLOCK_PTR], buffer);
-            blockList->push_back(*(uint32_t *) (buffer + (i - DIR_BLOCK - IND_BLOCK * N_BLOCK_PTR) % N_BLOCK_PTR));
+            inodePtr->blockDevice->read(this->block[(i >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
+            inodePtr->blockDevice->read(*(uint32_t *) (buffer[i >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
+            blockList->push_back(*(uint32_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
         } else {
             ret = -EINVAL;
