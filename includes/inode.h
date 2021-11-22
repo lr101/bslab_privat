@@ -21,14 +21,7 @@
 
 /**
  * TODO:
- * name size check
- * (or check is last char is '\0')
- * store name size? no?
- *
- * block list
- * 12? indirekt pointer, 3? indirekt
- * more level 2 indirekt pointer or one level 3 indirekt pointer
- *
+ * move define statements to myfs_structs?
  */
 
 class Inode {
