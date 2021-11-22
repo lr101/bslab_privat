@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <system_error>
 #include <sys/stat.h>
+#include <vector>
 
 #include "myfs-structs.h"
 
@@ -37,11 +38,13 @@ class Inode {
     time_t ctime;               ///< Time of last status change
     bool open = false;          ///< True if file is open
     char* name;                 ///< Name of file
-    size_t block[N_BLOCKS];     ///< Block List, pointer to either blocks or more pointer
+    uint32_t block[N_BLOCKS];   ///< Block List, pointer to either blocks or more pointer
 
     int setATime();
     int setMTime();
     int setCTime();
+
+    int getBlockList(InodePointer*, off_t, off_t, std::vector<uint32_t>*);
 public:
     Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
