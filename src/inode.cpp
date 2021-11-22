@@ -240,3 +240,32 @@ int Inode::getMetadata(struct stat *statbuf) {
     statbuf->st_nlink = 1;  //Set amount of hard links to file to 1 for now.
     return 0;
 }
+
+int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::vector<uint32_t>* blockList) {
+    uint32_t startBlockIndex = offset / BLOCK_SIZE;
+    uint32_t endBlockIndex = (size + offset) / BLOCK_SIZE;
+    int ret = 0;
+
+    for (uint32_t i = startBlockIndex; i <= endBlockIndex; i++) {
+        if (i < DIR_BLOCK) {
+            blockList->push_back(this->block[i]);
+        } else if (i < DIR_BLOCK + IND_BLOCK * N_BLOCK_PTR) {
+            char *buffer = new char[BLOCK_SIZE];
+            inodePtr->blockDevice->read(this->block[(i - DIR_BLOCK) / N_BLOCK_PTR + DIR_BLOCK], buffer);
+            blockList->push_back(*(uint32_t *) (buffer + i % IND_BLOCK - DIR_BLOCK));
+            delete[] buffer;
+        } else if (i < DIR_BLOCK + IND_BLOCK * N_BLOCK_PTR + DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
+            char *buffer = new char[BLOCK_SIZE];
+            inodePtr->blockDevice->read(this->block[(i - DIR_BLOCK - IND_BLOCK * N_BLOCK_PTR)
+                                                        / (N_BLOCK_PTR * N_BLOCK_PTR)
+                                                        + DIR_BLOCK + IND_BLOCK * N_BLOCK_PTR], buffer);
+            inodePtr->blockDevice->read(buffer[(i - DIR_BLOCK - IND_BLOCK * N_BLOCK_PTR) / N_BLOCK_PTR], buffer);
+            blockList->push_back(*(uint32_t *) (buffer + (i - DIR_BLOCK - IND_BLOCK * N_BLOCK_PTR) % N_BLOCK_PTR));
+            delete[] buffer;
+        } else {
+            ret = -EINVAL;
+        }
+    }
+
+    return ret;
+}
