@@ -13,7 +13,11 @@
 
 #include "myfs-structs.h"
 
-#define N_BLOCKS 15;
+#define DIR_BLOCK 4
+#define IND_BLOCK 4
+#define DIND_BLOCK 2
+#define N_BLOCKS (DIR_BLOCK + IND_BLOCK + DIND_BLOCK)
+#define N_BLOCK_PTR (BLOCK_SIZE / sizeof(uint32_t))
 
 /**
  * TODO:
