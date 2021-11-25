@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 
 #include "myfs-structs.h"
+#include "blockdevice.h"
 
 #define N_BLOCKS 15;
 
@@ -68,5 +69,7 @@ public:
     bool isOpen();
     int getData(off_t, char*, off_t);
     int getMetadata(struct stat*);
+
+    int saveToBlockDevice(InodePointer*);
 };
 

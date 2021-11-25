@@ -240,3 +240,13 @@ int Inode::getMetadata(struct stat *statbuf) {
     statbuf->st_nlink = 1;  //Set amount of hard links to file to 1 for now.
     return 0;
 }
+
+
+int saveToBlockDevice(InodePointer* ip) {
+    char buf[BLOCK_SIZE];
+    int ret = std::memcpy(&buf, ip->inode, sizeof(ip->inode));
+    if (ret >= 0) {
+        ret = ip->blockDevice->write(ip->blockNo, buf);
+    }
+    return ret;
+}
