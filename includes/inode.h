@@ -46,7 +46,7 @@ public:
 
 
     int setName(std::string*);
-    int setSize(off_t);
+    int setSize(off_t, InodePointer*);
     int setUserID(uid_t);
     int setGroupID(gid_t);
     int setMode(mode_t);
