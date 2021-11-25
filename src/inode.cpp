@@ -242,6 +242,7 @@ int Inode::getMetadata(struct stat *statbuf) {
 }
 
 int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::vector<index_t>* blockList) {
+    if (size < 0 || size + offset > this->size) return -EINVAL;
     index_t startBlockIndex = offset / BLOCK_SIZE;
     index_t endBlockIndex = (size + offset) / BLOCK_SIZE;
     int ret = 0;
