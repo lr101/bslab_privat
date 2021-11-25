@@ -44,6 +44,7 @@ class Inode {
     int setCTime();
 
     int getBlockList(InodePointer*, off_t, off_t, std::vector<uint32_t>*);
+    char *collectDataFromBlocks(off_t offset, off_t size, InodePointer *inodePointer, std::vector<uint32_t>* blockList);
 public:
     Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
@@ -68,7 +69,10 @@ public:
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
     bool isOpen();
-    int getData(off_t, char*, off_t);
+    int getData(InodePointer*, off_t, char*, off_t);
     int getMetadata(struct stat*);
+
+
+
 };
 
