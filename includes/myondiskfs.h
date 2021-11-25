@@ -19,6 +19,10 @@
 
 /// @brief On-disk implementation of a simple file system.
 class MyOnDiskFS : public MyFS {
+private:
+    int loadINodes();
+    int getINode(index_t, InodePointer*);
+
 protected:
     BlockDevice* blockDevice;
 

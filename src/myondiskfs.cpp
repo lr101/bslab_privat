@@ -417,6 +417,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             this->s_block = (Superblock*) malloc(sizeof(Superblock));
             ret = this->blockDevice->read(INDEX_SUPERBLOCK, puffer);
             std::memcpy(this->s_block, this->puffer, sizeof(Superblock));
+            ret = this->loadINodes();
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);
@@ -431,12 +432,11 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             LOGF("ERROR: Access to container file failed with error %d", ret);
         } else {
             LOG("Created Superblock with the following block index's:");
-            LOGF("DMapIndex: %d", this->s_block->getDMapIndex());
-            LOGF("IMapIndex %d", this->s_block->getIMapIndex());
-            LOGF("INodeIndex %d", this->s_block->getINodeIndex());
-            LOGF("DataIndex: %d", this->s_block->getDataIndex());
-            LOGF("Size: %d", this->s_block->getSize());
-            LOGF("Bytes: %d", sizeof(*this->s_block));
+            LOGF("DMapIndex: %u", this->s_block->getDMapIndex());
+            LOGF("IMapIndex %u", this->s_block->getIMapIndex());
+            LOGF("INodeIndex %u", this->s_block->getINodeIndex());
+            LOGF("DataIndex: %u", this->s_block->getDataIndex());
+            LOGF("Size: %lu", this->s_block->getSize());
         }
      }
 
@@ -457,6 +457,52 @@ void MyOnDiskFS::fuseDestroy() {
 }
 
 // TODO: [PART 2] You may add your own additional methods here!
+
+/// Load INodes from BlockDevice
+///
+/// This function is called when the file system is mounted and a container does already exits.
+/// All Inodes from the container are loaded into the inmemory file system
+/// \param
+/// \return 0 on success -ERRNO on failure.
+
+int MyOnDiskFS::loadINodes() {
+    int ret  = this->blockDevice->read(this->s_block->getIMapIndex(), puffer);
+    if (ret >= 0) {
+        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
+            if (((*puffer >> indexBit) & 1) == 1) {
+
+                auto *ip = new struct InodePointer();
+                ret = this->getINode(this->s_block->getINodeIndex() + indexBit, ip);
+
+                if (ret >= 0) {
+                    std::string path;
+                    ret = ip->inode->getName(&path);
+                    this->files[path] = ip;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+/// Load read INode from a given block into an INodePointer
+///
+/// This function reads an INode from a given blockNo into an INodePointer from the container
+///
+/// \param blockNo [in] block number in BLockDevice
+/// \param ip [out] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
+/// \return 0 on success
+int MyOnDiskFS::getINode(index_t blockNo, InodePointer* ip) {
+    ip->inode = (Inode*) malloc(sizeof(Inode));
+    ip->blockNo = blockNo;
+    ip->blockDevice = this->blockDevice;
+    char buf [BLOCK_SIZE];
+    (void) this->blockDevice->read(blockNo, buf);
+    std::memcpy(ip->inode, buf, sizeof(Inode));
+    return 0;
+}
+
+
 
 // DO NOT EDIT ANYTHING BELOW THIS LINE!!!
 
