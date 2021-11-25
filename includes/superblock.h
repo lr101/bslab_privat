@@ -33,5 +33,7 @@ public:
     index_t getIMapIndex();
     index_t getINodeIndex();
     index_t getDataIndex();
+    int getFreeInodeIndex(char* buf);
+    char* flipBitInNode (int index, char* buf);
 };
 
