@@ -23,6 +23,8 @@ class Superblock {
 
     static size_t calImapSize(size_t i_node_num);
     static size_t calDmapSize (size_t size);
+private:
+    int getINode(index_t, InodePointer*, BlockDevice* blockDevice);
 
 public:
     Superblock(size_t size, size_t i_node_num);
@@ -33,5 +35,7 @@ public:
     index_t getIMapIndex();
     index_t getINodeIndex();
     index_t getDataIndex();
+
+    int loadINodes(BlockDevice*, InodePointer*);
 };
 
