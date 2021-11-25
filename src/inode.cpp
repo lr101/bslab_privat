@@ -241,21 +241,13 @@ int Inode::getMetadata(struct stat *statbuf) {
     return 0;
 }
 
-
-int saveToBlockDevice(InodePointer* ip) {
-    char buf[BLOCK_SIZE];
-    int ret = std::memcpy(&buf, ip->inode, sizeof(ip->inode));
-    if (ret >= 0) {
-        ret = ip->blockDevice->write(ip->blockNo, buf);
-    }
-    return ret;
-}
-int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::vector<uint32_t>* blockList) {
-    uint32_t startBlockIndex = offset / BLOCK_SIZE;
-    uint32_t endBlockIndex = (size + offset) / BLOCK_SIZE;
+int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::vector<index_t>* blockList) {
+    if (size < 0 || size + offset > this->size) return -EINVAL;
+    index_t startBlockIndex = offset / BLOCK_SIZE;
+    index_t endBlockIndex = (size + offset) / BLOCK_SIZE;
     int ret = 0;
 
-    for (uint32_t i = startBlockIndex; i <= endBlockIndex; i++) {
+    for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
 
             blockList->push_back(this->block[i]);
@@ -264,15 +256,15 @@ int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::v
 
             char *buffer = new char[BLOCK_SIZE];
             ret += inodePtr->blockDevice->read(this->block[(i >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
-            blockList->push_back(*(uint32_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
+            blockList->push_back(*(index_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
 
         } else if (i -= IND_BLOCK * N_BLOCK_PTR < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
 
             char *buffer = new char[BLOCK_SIZE];
             ret += inodePtr->blockDevice->read(this->block[(i >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
-            ret += inodePtr->blockDevice->read(*(uint32_t *) (buffer[i >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
-            blockList->push_back(*(uint32_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
+            ret += inodePtr->blockDevice->read(*(index_t *) (buffer[i >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
+            blockList->push_back(*(index_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
 
         } else {
