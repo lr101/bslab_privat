@@ -1,7 +1,6 @@
 //
 // Created by Oliver Waldhorst on 20.03.20.
 // Copyright © 2017-2020 Oliver Waldhorst. All rights reserved.
-//
 
 #include "myondiskfs.h"
 
@@ -22,6 +21,7 @@
 #include "myfs.h"
 #include "myfs-info.h"
 #include "blockdevice.h"
+#include "inode.h"
 
 /// @brief Constructor of the on-disk file system class.
 ///
@@ -55,13 +55,22 @@ MyOnDiskFS::~MyOnDiskFS() {
 /// \param [in] mode Permissions for file access.
 /// \param [in] dev Can be ignored.
 /// \return 0 on success, -ERRNO on failure.
+
+
+
 int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
     if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
         std::string newName = path;
         try {
-            this->files[path] = new File(&newName, getuid(), getgid(), mode);
+            Inode * inode = new Inode(newName, getuid(), getgid(), mode);
+            int index = this->getFreeINodeIndex();
+            auto *ip = new struct InodePointer();
+            ip->inode = inode;
+            ip->blockDevice = this->blockDevice;
+            ip->blockNo = this->s_block->getINodeIndex() + index;
+            this->files[path] = ip;
         } catch (const std::exception &e) {
             LOGF("Error creating new file: %s", e.what());
             RETURN(-EINVAL);
@@ -73,6 +82,17 @@ int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     }
 
     RETURN(0);
+}
+
+int MyOnDiskFS::getFreeINodeIndex() {
+    int ret = this->blockDevice->read(this->s_block->getIMapIndex(), puffer);
+    if (ret == 0) {
+        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
+            if (((*puffer << indexBit) >> (BLOCK_SIZE * 8)) != 0) {
+                return indexBit;
+            }
+        }
+    }
 }
 
 /// @brief Delete a file.
@@ -115,7 +135,7 @@ int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
         this->files.erase(itPath);
         std::string newPathString = std::string(newpath);
         this->files.insert({newPathString, std::move(value)});
-        RETURN(this->files.find(newpath)->second->setName(&newPathString));
+        RETURN(this->files.find(newpath)->second->inode->setName(&newPathString));
     } else {
         RETURN(-ENOENT);
     }
@@ -158,7 +178,7 @@ int MyOnDiskFS::fuseGetattr(const char *path, struct stat *statbuf) {
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2; // Why "two" hardlinks instead of "one"? The answer is here: http://unix.stackexchange.com/a/101536
     } else if (itPath != this->files.end()) {
-        ret = itPath->second->getMetadata(statbuf);
+        ret = itPath->second->inode->getMetadata(statbuf);
     } else
         ret = -ENOENT;
     if (ret >= 0) {
@@ -187,7 +207,7 @@ int MyOnDiskFS::fuseChmod(const char *path, mode_t mode) {
     auto itPath = this->files.find(path);
 
     if (itPath != this->files.end()) {
-        RETURN(itPath->second->setMode(mode));
+        RETURN(itPath->second->inode->setMode(mode));
     } else {
         RETURN(-ENOENT);
     }
@@ -209,8 +229,8 @@ int MyOnDiskFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setUserID(uid);
-        ret |= itPath->second->setGroupID(gid);
+        ret = itPath->second->inode->setUserID(uid);
+        ret |= itPath->second->inode->setGroupID(gid);
     } else {
         ret = -ENOENT;
     }
@@ -234,7 +254,7 @@ int MyOnDiskFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setOpen();
+        ret = itPath->second->inode->setOpen();
     } else {
         ret = -ENOENT;
     }
@@ -266,7 +286,7 @@ int MyOnDiskFS::fuseRead(const char *path, char *buf, size_t size, off_t offset,
     auto itPath = this->files.find(path);
 
     if (itPath != this->files.end()) {
-        RETURN(itPath->second->getData(offset, buf, size));
+        RETURN(itPath->second->inode->getData(offset, buf, size));
     } else {
         RETURN(-ENOENT);
     }
@@ -293,7 +313,7 @@ int MyOnDiskFS::fuseWrite(const char *path, const char *buf, size_t size, off_t 
 
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    RETURN(curFile->second->write(size, buf, offset));
+    RETURN(curFile->second->inode->write(size, buf, offset));
 }
 
 /// @brief Close a file.
@@ -306,7 +326,7 @@ int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGF("Attributes: path=%s, fileInfo=%s", path, "Ignored in Part1");
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    RETURN(curFile->second->setClose());
+    RETURN(curFile->second->inode->setClose());
 }
 
 /// @brief Truncate a file.
@@ -321,7 +341,7 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld", path, newSize);
     if (files.find(path) == files.end()) {RETURN(-EBADF);}
-    RETURN(files[path]->setSize(newSize));
+    RETURN(files[path]->inode->setSize(newSize));
 }
 
 /// @brief Truncate a file.
@@ -338,7 +358,7 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_i
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
     if (files.find(path) == files.end()) {RETURN(-EBADF);}
-    RETURN(files[path]->setSize(newSize));
+    RETURN(files[path]->inode->setSize(newSize));
 }
 
 /// @brief Read a directory.
