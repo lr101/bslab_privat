@@ -57,14 +57,14 @@ int Inode::setName(std::string *name) {
 /// Change the size of the data block.
 /// \param size [in] New data size.
 /// \returns 0 on success
-int Inode::setSize(off_t size, InodePointer* ip) {
+int Inode::setSize(off_t size, off_t offset, InodePointer* ip) {
     if (size < 0) return -EINVAL;
     if (this->size > size) {
-         off_t numRmvBlocks = this->size - size;
-         Superblock::rmBlocks(ip, numRmvBlocks);
+         off_t numRmvBlocks = (this->size - size) / BLOCK_SIZE;
+         Superblock::rmBlocks(ip, offset numRmvBlocks);
     } else {
-        off_t numNewBlocks = size - this->size;
-        Superblock::addBlocks(ip, numNewBlocks);
+        off_t numNewBlocks = (size - this->size) / BLOCK_SIZE;
+        Superblock::addBlocks(ip, offset numNewBlocks);
     }
     this->size = size;
     setMTime();

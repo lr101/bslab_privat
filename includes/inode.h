@@ -46,7 +46,7 @@ public:
 
 
     int setName(std::string*);
-    int setSize(off_t, InodePointer*);
+    int setSize(off_t, off_t, InodePointer*);
     int setUserID(uid_t);
     int setGroupID(gid_t);
     int setMode(mode_t);
@@ -65,5 +65,7 @@ public:
     bool isOpen();
     int getData(off_t, char*, off_t);
     int getMetadata(struct stat*);
+
+    int setSize(off_t size, off_t offset, InodePointer *ip);
 };
 
