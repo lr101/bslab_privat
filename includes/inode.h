@@ -9,22 +9,22 @@
 #include <errno.h>
 #include <system_error>
 #include <sys/stat.h>
+#include <vector>
 
 #include "myfs-structs.h"
 #include "blockdevice.h"
 
-#define N_BLOCKS 15;
+#define DIR_BLOCK 4
+#define IND_BLOCK 4
+#define DIND_BLOCK 2
+#define N_BLOCKS (DIR_BLOCK + IND_BLOCK + DIND_BLOCK)
+#define N_BLOCK_PTR (BLOCK_SIZE / sizeof(uint32_t))
+#define BLOCK_PTR_BITS 7    //7 bits to address 0 to 127
+#define BLOCK_PTR_BIT_MASK (N_BLOCK_PTR - 1)
 
 /**
  * TODO:
- * name size check
- * (or check is last char is '\0')
- * store name size? no?
- *
- * block list
- * 12? indirekt pointer, 3? indirekt
- * more level 2 indirekt pointer or one level 3 indirekt pointer
- *
+ * move define statements to myfs_structs?
  */
 
 class Inode {
@@ -38,11 +38,13 @@ class Inode {
     time_t ctime;               ///< Time of last status change
     bool open = false;          ///< True if file is open
     char* name;                 ///< Name of file
-    size_t block[N_BLOCKS];     ///< Block List, pointer to either blocks or more pointer
+    uint32_t block[N_BLOCKS];   ///< Block List, pointer to either blocks or more pointer
 
     int setATime();
     int setMTime();
     int setCTime();
+
+    int getBlockList(InodePointer*, off_t, off_t, std::vector<uint32_t>*);
 public:
     Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();

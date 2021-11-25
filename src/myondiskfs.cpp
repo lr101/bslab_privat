@@ -1,7 +1,6 @@
 //
 // Created by Oliver Waldhorst on 20.03.20.
 // Copyright © 2017-2020 Oliver Waldhorst. All rights reserved.
-//
 
 #include "myondiskfs.h"
 
@@ -22,6 +21,7 @@
 #include "myfs.h"
 #include "myfs-info.h"
 #include "blockdevice.h"
+#include "inode.h"
 
 /// @brief Constructor of the on-disk file system class.
 ///
@@ -55,13 +55,22 @@ MyOnDiskFS::~MyOnDiskFS() {
 /// \param [in] mode Permissions for file access.
 /// \param [in] dev Can be ignored.
 /// \return 0 on success, -ERRNO on failure.
+
+
+
 int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
     if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
         std::string newName = path;
         try {
-            this->files[path] = new File(&newName, getuid(), getgid(), mode);
+            Inode * inode = new Inode(newName, getuid(), getgid(), mode);
+            int index = this->getFreeINodeIndex();
+            auto *ip = new struct InodePointer();
+            ip->inode = inode;
+            ip->blockDevice = this->blockDevice;
+            ip->blockNo = this->s_block->getINodeIndex() + index;
+            this->files[path] = ip;
         } catch (const std::exception &e) {
             LOGF("Error creating new file: %s", e.what());
             RETURN(-EINVAL);
@@ -73,6 +82,17 @@ int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     }
 
     RETURN(0);
+}
+
+int MyOnDiskFS::getFreeINodeIndex() {
+    int ret = this->blockDevice->read(this->s_block->getIMapIndex(), puffer);
+    if (ret == 0) {
+        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
+            if (((*puffer << indexBit) >> (BLOCK_SIZE * 8)) != 0) {
+                return indexBit;
+            }
+        }
+    }
 }
 
 /// @brief Delete a file.
@@ -115,7 +135,7 @@ int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
         this->files.erase(itPath);
         std::string newPathString = std::string(newpath);
         this->files.insert({newPathString, std::move(value)});
-        RETURN(this->files.find(newpath)->second->setName(&newPathString));
+        RETURN(this->files.find(newpath)->second->inode->setName(&newPathString));
     } else {
         RETURN(-ENOENT);
     }
@@ -158,7 +178,7 @@ int MyOnDiskFS::fuseGetattr(const char *path, struct stat *statbuf) {
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2; // Why "two" hardlinks instead of "one"? The answer is here: http://unix.stackexchange.com/a/101536
     } else if (itPath != this->files.end()) {
-        ret = itPath->second->getMetadata(statbuf);
+        ret = itPath->second->inode->getMetadata(statbuf);
     } else
         ret = -ENOENT;
     if (ret >= 0) {
@@ -187,7 +207,7 @@ int MyOnDiskFS::fuseChmod(const char *path, mode_t mode) {
     auto itPath = this->files.find(path);
 
     if (itPath != this->files.end()) {
-        RETURN(itPath->second->setMode(mode));
+        RETURN(itPath->second->inode->setMode(mode));
     } else {
         RETURN(-ENOENT);
     }
@@ -209,8 +229,8 @@ int MyOnDiskFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setUserID(uid);
-        ret |= itPath->second->setGroupID(gid);
+        ret = itPath->second->inode->setUserID(uid);
+        ret |= itPath->second->inode->setGroupID(gid);
     } else {
         ret = -ENOENT;
     }
@@ -234,7 +254,7 @@ int MyOnDiskFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     int ret;
 
     if (itPath != this->files.end()) {
-        ret = itPath->second->setOpen();
+        ret = itPath->second->inode->setOpen();
     } else {
         ret = -ENOENT;
     }
@@ -266,7 +286,7 @@ int MyOnDiskFS::fuseRead(const char *path, char *buf, size_t size, off_t offset,
     auto itPath = this->files.find(path);
 
     if (itPath != this->files.end()) {
-        RETURN(itPath->second->getData(offset, buf, size));
+        RETURN(itPath->second->inode->getData(offset, buf, size));
     } else {
         RETURN(-ENOENT);
     }
@@ -293,7 +313,7 @@ int MyOnDiskFS::fuseWrite(const char *path, const char *buf, size_t size, off_t 
 
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    RETURN(curFile->second->write(size, buf, offset));
+    RETURN(curFile->second->inode->write(size, buf, offset));
 }
 
 /// @brief Close a file.
@@ -306,7 +326,7 @@ int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGF("Attributes: path=%s, fileInfo=%s", path, "Ignored in Part1");
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    RETURN(curFile->second->setClose());
+    RETURN(curFile->second->inode->setClose());
 }
 
 /// @brief Truncate a file.
@@ -321,7 +341,7 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld", path, newSize);
     if (files.find(path) == files.end()) {RETURN(-EBADF);}
-    RETURN(files[path]->setSize(newSize));
+    RETURN(files[path]->inode->setSize(newSize));
 }
 
 /// @brief Truncate a file.
@@ -338,7 +358,7 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_i
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
     if (files.find(path) == files.end()) {RETURN(-EBADF);}
-    RETURN(files[path]->setSize(newSize));
+    RETURN(files[path]->inode->setSize(newSize));
 }
 
 /// @brief Read a directory.
@@ -397,6 +417,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             this->s_block = (Superblock*) malloc(sizeof(Superblock));
             ret = this->blockDevice->read(INDEX_SUPERBLOCK, puffer);
             std::memcpy(this->s_block, this->puffer, sizeof(Superblock));
+            ret = this->loadINodes();
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);
@@ -411,12 +432,11 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             LOGF("ERROR: Access to container file failed with error %d", ret);
         } else {
             LOG("Created Superblock with the following block index's:");
-            LOGF("DMapIndex: %d", this->s_block->getDMapIndex());
-            LOGF("IMapIndex %d", this->s_block->getIMapIndex());
-            LOGF("INodeIndex %d", this->s_block->getINodeIndex());
-            LOGF("DataIndex: %d", this->s_block->getDataIndex());
-            LOGF("Size: %d", this->s_block->getSize());
-            LOGF("Bytes: %d", sizeof(*this->s_block));
+            LOGF("DMapIndex: %u", this->s_block->getDMapIndex());
+            LOGF("IMapIndex %u", this->s_block->getIMapIndex());
+            LOGF("INodeIndex %u", this->s_block->getINodeIndex());
+            LOGF("DataIndex: %u", this->s_block->getDataIndex());
+            LOGF("Size: %lu", this->s_block->getSize());
         }
      }
 
@@ -437,6 +457,52 @@ void MyOnDiskFS::fuseDestroy() {
 }
 
 // TODO: [PART 2] You may add your own additional methods here!
+
+/// Load INodes from BlockDevice
+///
+/// This function is called when the file system is mounted and a container does already exits.
+/// All Inodes from the container are loaded into the inmemory file system
+/// \param
+/// \return 0 on success -ERRNO on failure.
+
+int MyOnDiskFS::loadINodes() {
+    int ret  = this->blockDevice->read(this->s_block->getIMapIndex(), puffer);
+    if (ret >= 0) {
+        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
+            if (((*puffer >> indexBit) & 1) == 1) {
+
+                auto *ip = new struct InodePointer();
+                ret = this->getINode(this->s_block->getINodeIndex() + indexBit, ip);
+
+                if (ret >= 0) {
+                    std::string path;
+                    ret = ip->inode->getName(&path);
+                    this->files[path] = ip;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+/// Load read INode from a given block into an INodePointer
+///
+/// This function reads an INode from a given blockNo into an INodePointer from the container
+///
+/// \param blockNo [in] block number in BLockDevice
+/// \param ip [out] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
+/// \return 0 on success
+int MyOnDiskFS::getINode(index_t blockNo, InodePointer* ip) {
+    ip->inode = (Inode*) malloc(sizeof(Inode));
+    ip->blockNo = blockNo;
+    ip->blockDevice = this->blockDevice;
+    char buf [BLOCK_SIZE];
+    (void) this->blockDevice->read(blockNo, buf);
+    std::memcpy(ip->inode, buf, sizeof(Inode));
+    return 0;
+}
+
+
 
 // DO NOT EDIT ANYTHING BELOW THIS LINE!!!
 
