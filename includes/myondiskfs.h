@@ -22,6 +22,7 @@ class MyOnDiskFS : public MyFS {
 private:
     int loadINodes();
     int getINode(index_t, InodePointer*);
+    int writeInode(InodePointer*);
 
 protected:
     BlockDevice* blockDevice;

@@ -71,6 +71,10 @@ int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
             ip->blockDevice = this->blockDevice;
             ip->blockNo = this->s_block->getINodeIndex() + index;
             this->files[path] = ip;
+
+            // write inode to blockdevice
+            int ret = writeInode(ip);
+            if (ret != 0) { RETURN(ret);}
         } catch (const std::exception &e) {
             LOGF("Error creating new file: %s", e.what());
             RETURN(-EINVAL);
@@ -109,6 +113,7 @@ int MyOnDiskFS::fuseUnlink(const char *path) {
 
     if (itPath != this->files.end()) {
         this->files.erase(itPath);
+        // TODO: free inode's block
         RETURN(0);
     } else {
         RETURN(-ENOENT);
@@ -135,7 +140,9 @@ int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
         this->files.erase(itPath);
         std::string newPathString = std::string(newpath);
         this->files.insert({newPathString, std::move(value)});
-        RETURN(this->files.find(newpath)->second->inode->setName(&newPathString));
+        InodePointer* ip = this->files.find(newpath)->second;
+        ip->inode->setName(&newPathString); // TODO: exception handling
+        RETURN(writeInode(ip));
     } else {
         RETURN(-ENOENT);
     }
@@ -207,7 +214,8 @@ int MyOnDiskFS::fuseChmod(const char *path, mode_t mode) {
     auto itPath = this->files.find(path);
 
     if (itPath != this->files.end()) {
-        RETURN(itPath->second->inode->setMode(mode));
+        itPath->second->inode->setMode(mode); //TODO: exception handling
+        RETURN(writeInode(itPath->second));
     } else {
         RETURN(-ENOENT);
     }
@@ -234,6 +242,9 @@ int MyOnDiskFS::fuseChown(const char *path, uid_t uid, gid_t gid) {
     } else {
         ret = -ENOENT;
     }
+    if (ret == 0) {
+        ret = writeInode(itPath->second);
+    }
 
     RETURN(ret);
 }
@@ -258,6 +269,7 @@ int MyOnDiskFS::fuseOpen(const char *path, struct fuse_file_info *fileInfo) {
     } else {
         ret = -ENOENT;
     }
+    if (ret == 0) { ret = writeInode(itPath->second); }
 
     RETURN(ret);
 }
@@ -310,10 +322,16 @@ int MyOnDiskFS::fuseRead(const char *path, char *buf, size_t size, off_t offset,
 int MyOnDiskFS::fuseWrite(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     LOGM();
     LOGF("Attributes: path=%s, offset=%lu, size=%lu, fileInfo=%s", path, offset, size, "Ignored in Part1");
+    int ret;
 
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    RETURN(curFile->second->inode->write(size, buf, offset));
+    ret = curFile->second->inode->write(size, buf, offset);
+    if (ret == 0) {
+        // update Inode on disk. Why? MTime changes after write operation
+        ret = writeInode(curFile->second);
+    }
+    RETURN(ret);
 }
 
 /// @brief Close a file.
@@ -326,7 +344,11 @@ int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
     LOGF("Attributes: path=%s, fileInfo=%s", path, "Ignored in Part1");
     auto curFile = files.find(path);
     if (curFile == files.end()) {RETURN(-ENOENT);}
-    RETURN(curFile->second->inode->setClose());
+    int ret = curFile->second->inode->setClose();
+    if (ret == 0) {
+        ret = writeInode(curFile->second);
+    }
+    RETURN(ret);
 }
 
 /// @brief Truncate a file.
@@ -340,8 +362,11 @@ int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
 int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld", path, newSize);
-    if (files.find(path) == files.end()) {RETURN(-EBADF);}
-    RETURN(files[path]->inode->setSize(newSize));
+    int ret;
+    if (files.find(path) == files.end()) {ret = -EBADF;}
+    if (ret == 0) { ret = files[path]->inode->setSize(newSize); }
+    if (ret == 0) { ret = writeInode(files[path]); }
+    RETURN(ret);
 }
 
 /// @brief Truncate a file.
@@ -357,8 +382,11 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
 int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_info *fileInfo) {
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
-    if (files.find(path) == files.end()) {RETURN(-EBADF);}
-    RETURN(files[path]->inode->setSize(newSize));
+    int ret;
+    if (files.find(path) == files.end()) { ret =-EBADF; }
+    if (ret == 0) { ret = files[path]->inode->setSize(newSize) };
+    if (ret == 0) { ret = writeInode(files[path]); }
+    RETURN(ret);
 }
 
 /// @brief Read a directory.
@@ -500,6 +528,18 @@ int MyOnDiskFS::getINode(index_t blockNo, InodePointer* ip) {
     (void) this->blockDevice->read(blockNo, buf);
     std::memcpy(ip->inode, buf, sizeof(Inode));
     return 0;
+}
+
+/// Save inode on blockdevice
+///
+/// This function reads an inode and blockNo from an InodePointer and writes the Inode to its respective block
+///
+/// \param ip [in] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
+/// \return 0 on success
+int MyOnDiskFS::writeInode(InodePointer* ip) {
+    // todo: consider throwing error if file open
+    int ret = this->blockDevice->write(ip->blockNo,(char *) ip->inode);
+    return ret;
 }
 
 
