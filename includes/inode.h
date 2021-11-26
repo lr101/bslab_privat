@@ -33,26 +33,27 @@ class Inode {
     bool open = false;          ///< True if file is open
     char* name;                 ///< Name of file
     index_t block[N_BLOCKS];    ///< Block List, pointer to either blocks or more pointer
+    Superblock* s_block;
 
     int setATime();
     int setMTime();
     int setCTime();
 
-    int getBlockList(InodePointer*, off_t, off_t, std::vector<index_t>*);
+    int getBlockList(off_t, off_t, std::vector<index_t>*);
 public:
-    Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode);
+    Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
-    Inode(const Inode&);
+    Inode(Superblock*, const Inode&);
 
 
-    int setName(InodePointer*, std::string*);
-    int setSize(InodePointer*, off_t);
-    int setUserID(InodePointer*, uid_t);
-    int setGroupID(InodePointer*, gid_t);
-    int setMode(InodePointer*, mode_t);
+    int setName(std::string*);
+    int setSize(off_t);
+    int setUserID(uid_t);
+    int setGroupID(gid_t);
+    int setMode(mode_t);
     int setOpen();
     int setClose();
-    int write(InodePointer*, off_t, const char*, off_t);
+    int write(off_t, const char*, off_t);
 
     int getName(std::string*);
     int getSize(off_t*);
@@ -63,7 +64,8 @@ public:
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
     bool isOpen();
-    int getData(InodePointer*, off_t, char*, off_t);
+    int getData(off_t, char*, off_t);
     int getMetadata(struct stat*);
+    InodePointer* getInodePointer();
 };
 
