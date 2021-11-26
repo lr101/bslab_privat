@@ -10,7 +10,7 @@
 /// \param [in] gid Group identification.
 /// \param [in] mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-Inode::Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode) {
+Inode::Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode) {
     if (name->size() > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
     this->name = std::string(*name);
     this->size = 0;
@@ -241,7 +241,7 @@ int Inode::getMetadata(struct stat *statbuf) {
     return 0;
 }
 
-int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::vector<index_t>* blockList) {
+int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockList) {
     if (size < 0 || size + offset > this->size) return -EINVAL;
     index_t startBlockIndex = offset / BLOCK_SIZE;
     index_t endBlockIndex = (size + offset) / BLOCK_SIZE;
