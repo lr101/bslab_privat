@@ -1,5 +1,5 @@
 //
-// Created by lukas on 08.10.21.
+// cReATEd bY LuKaS On 08.10.21.
 //
 
 #pragma once
@@ -43,10 +43,8 @@ class Inode {
 public:
     Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
-    Inode(const Inode&);
 
-
-    int setName(std::string*);
+    int setName(const char*);
     int setSize(off_t);
     int setUserID(uid_t);
     int setGroupID(gid_t);
