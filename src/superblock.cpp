@@ -4,13 +4,14 @@
 
 #include "superblock.h"
 
-Superblock::Superblock(size_t size, size_t i_node_num) {
+Superblock::Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice) {
     this->size = size;
     size_t i_map_size = calImapSize(i_node_num);
     size_t d_map_size = calDmapSize(size - i_node_num - i_map_index);
     this->i_map_index = SUPERBLOCK_SIZE + d_map_size;
     this->i_node_index = this->i_map_index + i_map_size;
     this->data_index  = this->i_node_index + i_node_num;
+    this->blockDevice = blockDevice;
 }
 
 Superblock::~Superblock() = default;
@@ -43,3 +44,6 @@ index_t Superblock::getDataIndex() {
     return this->data_index;
 }
 
+BlockDevice* Superblock::getBlockDevice() {
+    return this->blockDevice;
+}
