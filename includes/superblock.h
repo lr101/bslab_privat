@@ -28,6 +28,8 @@ public:
     Superblock(size_t size, size_t i_node_num);
     ~Superblock();
 
+    BlockDevice* blockDevice;
+
     size_t getSize();
     index_t getDMapIndex();
     index_t getIMapIndex();
