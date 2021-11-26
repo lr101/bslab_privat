@@ -39,31 +39,30 @@ class Inode {
     int setMTime();
     int setCTime();
 
-    int getBlockList(off_t, off_t, std::vector<index_t>*);
+    int getBlockList(off_t size, off_t offset, std::vector<index_t> *blockList);
 public:
     Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
 
-    int setName(const char*);
-    int setSize(off_t);
-    int setUserID(uid_t);
-    int setGroupID(gid_t);
-    int setMode(mode_t);
+    int setName(const char *name);
+    int setSize(off_t size);
+    int setUserID(uid_t uid);
+    int setGroupID(gid_t gid);
+    int setMode(mode_t mode);
     int setOpen();
     int setClose();
-    int write(off_t, const char*, off_t);
+    int write(off_t size, const char *data, off_t offset);
 
-    int getName(std::string*);
-    int getSize(off_t*);
-    int getUserID(uid_t*);
-    int getGroupID(gid_t*);
-    int getMode(mode_t*);
-    int getATime(std::time_t*);
-    int getMTime(std::time_t*);
-    int getCTime(std::time_t*);
+    int getName(const char *name);
+    int getSize(off_t *size);
+    int getUserID(uid_t *uid);
+    int getGroupID(gid_t *gid);
+    int getMode(mode_t *mode);
+    int getATime(std::time_t *atime);
+    int getMTime(std::time_t *mtime);
+    int getCTime(std::time_t *ctime);
     bool isOpen();
-    int getData(off_t, char*, off_t);
-    int getMetadata(struct stat*);
-    InodePointer* getInodePointer();
+    int getData(off_t offset, char *data, off_t size);
+    int getMetadata(struct stat *statbuf);
 };
 
