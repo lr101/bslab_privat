@@ -23,7 +23,7 @@
 #define BLOCK_PTR_BIT_MASK (N_BLOCK_PTR - 1)
 
 class Inode {
-    size_t size;
+    size_t size;                ///< Size in bytes of the entire data part
     uid_t uid;                  ///< User identifier
     gid_t gid;                  ///< Group identifier
     mode_t mode;                ///< Permissions for file access
@@ -32,7 +32,7 @@ class Inode {
     time_t ctime;               ///< Time of last status change
     bool open = false;          ///< True if file is open
     char* name;                 ///< Name of file
-    index_t block[N_BLOCKS];   ///< Block List, pointer to either blocks or more pointer
+    index_t block[N_BLOCKS];    ///< Block List, pointer to either blocks or more pointer
 
     int setATime();
     int setMTime();
@@ -45,14 +45,14 @@ public:
     Inode(const Inode&);
 
 
-    int setName(std::string*);
-    int setSize(off_t);
-    int setUserID(uid_t);
-    int setGroupID(gid_t);
-    int setMode(mode_t);
+    int setName(InodePointer*, std::string*);
+    int setSize(InodePointer*, off_t);
+    int setUserID(InodePointer*, uid_t);
+    int setGroupID(InodePointer*, gid_t);
+    int setMode(InodePointer*, mode_t);
     int setOpen();
     int setClose();
-    int write(off_t, const char*, off_t);
+    int write(InodePointer*, off_t, const char*, off_t);
 
     int getName(std::string*);
     int getSize(off_t*);
@@ -63,7 +63,7 @@ public:
     int getMTime(std::time_t*);
     int getCTime(std::time_t*);
     bool isOpen();
-    int getData(off_t, char*, off_t);
+    int getData(InodePointer*, off_t, char*, off_t);
     int getMetadata(struct stat*);
 };
 
