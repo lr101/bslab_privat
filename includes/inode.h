@@ -43,7 +43,7 @@ class Inode {
 public:
     Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
-    Inode(Superblock*, const Inode&);
+    Inode(const Inode&);
 
 
     int setName(std::string*);
