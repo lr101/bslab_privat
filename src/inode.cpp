@@ -194,12 +194,28 @@ bool Inode::isOpen() {
 /// \param offset [in] Offset to the location to write the data to.
 /// \returns 0 on success, -EINVAL If size negative, -EBADF If file is not open
 int Inode::write(off_t size, const char* data, off_t offset) {
-    if (!this->open) {return -EBADF;}
+    if (!this->open) return -EBADF;
     if (size < 0) return -EINVAL;
     if (size + offset > this->size) {
         setSize(size + offset);
     }
-    std::memcpy(this->data + offset, data, size);
+    std::vector<index_t> *blockList;
+    int ret = getBlockList(size, offset, blockList);
+    if (ret < 0) return ret;
+    int growingOffset = 0;
+    for (auto &tempBlock : *blockList) {
+        char* buffer = new char[BLOCK_SIZE];
+        this->s_block->getBlockDevice()->read(tempBlock, buffer);
+        if (tempBlock == *blockList->begin()) {
+            std::memcpy(buffer, data, BLOCK_SIZE - (offset & BLOCK_PTR_BIT_MASK));
+            growingOffset += BLOCK_SIZE - (offset & BLOCK_PTR_BIT_MASK);
+        } else if (tempBlock == *blockList->end()) {
+            std::memcpy(buffer, data + growingOffset, size + offset & BLOCK_PTR_BIT_MASK);
+        } else {
+            std::memcpy(buffer, data + growingOffset, BLOCK_SIZE);
+            growingOffset += BLOCK_SIZE;
+        }
+    }
     setMTime();
     return size;
 }
