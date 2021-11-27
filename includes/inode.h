@@ -70,5 +70,7 @@ public:
     bool isOpen();
     int getData(off_t, char*, off_t);
     int getMetadata(struct stat*);
+
+    size_t getBlock(int);
 };
 
