@@ -252,23 +252,25 @@ int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockLis
     int ret = 0;
 
     for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
-        if (i < DIR_BLOCK) {
+        int currentBlockIndex = i;
 
-            blockList->push_back(this->block[i]);
+        if (currentBlockIndex < DIR_BLOCK) {
 
-        } else if ((i -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
+            blockList->push_back(this->block[currentBlockIndex]);
+
+        } else if ((currentBlockIndex -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
 
             char *buffer = new char[BLOCK_SIZE];
-            ret += s_block->getBlockDevice()->read(this->block[(i >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
-            blockList->push_back(*(index_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
+            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
+            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
 
-        } else if ((i -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
+        } else if ((currentBlockIndex -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
 
             char *buffer = new char[BLOCK_SIZE];
-            ret += s_block->getBlockDevice()->read(this->block[(i >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
-            ret += s_block->getBlockDevice()->read(*(index_t *) (buffer[i >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
-            blockList->push_back(*(index_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
+            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
+            ret += s_block->getBlockDevice()->read(*(index_t *) (buffer[currentBlockIndex >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
+            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
 
         } else {
