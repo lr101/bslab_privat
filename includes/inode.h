@@ -18,9 +18,15 @@
 #define IND_BLOCK 4
 #define DIND_BLOCK 2
 #define N_BLOCKS (DIR_BLOCK + IND_BLOCK + DIND_BLOCK)
-#define N_BLOCK_PTR (BLOCK_SIZE / sizeof(index_t))
+#define N_BLOCK_PTR (BLOCK_SIZE / sizeof(uint32_t))
 #define BLOCK_PTR_BITS 7    //7 bits to address 0 to 127
 #define BLOCK_PTR_BIT_MASK (N_BLOCK_PTR - 1)
+#define N_IND_BLOCKS_PTR (IND_BLOCK * N_BLOCK_PTR)
+
+/**
+ * TODO:
+ * move define statements to myfs_structs?
+ */
 
 class Inode {
     size_t size;
@@ -67,5 +73,8 @@ public:
     int getMetadata(struct stat*);
 
     int setSize(off_t size, off_t offset, InodePointer *ip);
+
+    size_t getBlock(int);
+    int setBlockPointer(int, index_t);
 };
 

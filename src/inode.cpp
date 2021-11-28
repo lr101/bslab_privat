@@ -280,3 +280,14 @@ int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::v
 
     return ret;
 }
+
+size_t Inode::getBlock(int index) {
+    if (index >= 0 && index < N_BLOCKS) return -EINVAL;
+    return this->block[index];
+}
+
+int Inode::setBlockPointer(int index, index_t blockNo) {
+    if (index >= 0 && index < N_BLOCKS) return -EINVAL;
+    this->block[index] = blockNo;
+    return 0;
+}
