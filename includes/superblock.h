@@ -42,19 +42,19 @@ public:
 
     int loadINodes(BlockDevice*, InodePointer*);
 
-    int addBlocks(InodePointer* , off_t , off_t );
+    int addBlocks(Inode* , off_t , off_t );
 
-    int rmBlocks(InodePointer*, off_t);
+    int rmBlocks(Inode*, off_t);
 
-    int toggleDMapIndex(index_t , BlockDevice* );
+    int toggleDMapIndex(index_t );
 
-    index_t getFreeDataBlockNo(BlockDevice*);
+    index_t getFreeDataBlockNo();
 
-    index_t setIndirectPointer(BlockDevice*, index_t, off_t );
+    index_t setIndirectPointer(index_t, off_t );
 
-    index_t getIndirectPointer(BlockDevice*, index_t, off_t);
+    index_t getIndirectPointer( index_t, off_t);
 
-    int setInodeDataPointer(InodePointer *ip, int pointerIndex);
+    int setInodeDataPointer(Inode*, int pointerIndex);
 
 };
 

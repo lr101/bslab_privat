@@ -88,24 +88,25 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip, BlockDevice* blockDe
 }
 
 
-int Superblock::addBlocks(InodePointer* ip, off_t offset, off_t numNewBlocks) {
-    index_t startBlockIndex = offset / BLOCK_SIZE;
+int Superblock::addBlocks(Inode* inode, off_t offset, off_t numNewBlocks) {
+    off_t inodeSize;
+    int ret = inode->getSize(&inodeSize);
+    index_t startBlockIndex = inodeSize / BLOCK_SIZE + 1; //TODO dont know if +1 is correct here
     index_t endBlockIndex = startBlockIndex + numNewBlocks;
-    int ret = 0;
     index_t indirectAddress = -1;
 
     for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
-            ret += setInodeDataPointer(ip, i);
+            ret += setInodeDataPointer(inode, i);
 
         } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {
 
             index_t relativeIndex = i - DIR_BLOCK;
             index_t indexInodePointer = (relativeIndex >> BLOCK_PTR_BITS) + DIR_BLOCK;
 
-            if (relativeIndex % N_BLOCK_PTR == 0) ret += setInodeDataPointer(ip, indexInodePointer);
+            if (relativeIndex % N_BLOCK_PTR == 0) ret += setInodeDataPointer(inode, indexInodePointer);
 
-            (void) setIndirectPointer(ip->blockDevice, ip->inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS);
+            (void) setIndirectPointer(inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS);
 
         } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR, 2)) {
 
@@ -113,10 +114,10 @@ int Superblock::addBlocks(InodePointer* ip, off_t offset, off_t numNewBlocks) {
             index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
             index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK; //TODO copied from Daniel no clue if it works
 
-            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR))  ret += setInodeDataPointer(ip, indexInodePointer);
-            if (relativeIndex % N_BLOCK_PTR) indirectAddress = setIndirectPointer(ip->blockDevice,  ip->inode->getBlock(indexInodePointer), indirectPointerIndex);
+            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR))  ret += setInodeDataPointer(inode, indexInodePointer);
+            if (relativeIndex % N_BLOCK_PTR) indirectAddress = setIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
 
-            (void)setIndirectPointer(ip->blockDevice, indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS);
+            (void)setIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS);
 
         } else {
             ret = -EINVAL;
@@ -124,36 +125,36 @@ int Superblock::addBlocks(InodePointer* ip, off_t offset, off_t numNewBlocks) {
     }
 }
 
-int Superblock::rmBlocks(InodePointer* ip, off_t numRmvBlocks) {
+int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks) {
     off_t inodeSize;
-    int ret = ip->inode->getSize(&inodeSize);
+    int ret = inode->getSize(&inodeSize);
     index_t endBlockIndex = inodeSize / BLOCK_SIZE;
     index_t startBlockIndex = endBlockIndex - numRmvBlocks;
     index_t indirectAddress = -1;
 
     for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
-            ret += toggleDMapIndex(ip->inode->getBlock(i) - this->data_index, ip->blockDevice);
+            ret += toggleDMapIndex(inode->getBlock(i) - this->data_index);
 
         } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {
 
             index_t relativeIndex = i - DIR_BLOCK;
             index_t indexInodePointer = (relativeIndex >> BLOCK_PTR_BITS) + DIR_BLOCK;
 
-            if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(ip->inode->getBlock(indexInodePointer) - this->data_index, ip->blockDevice);
+            if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(inode->getBlock(indexInodePointer) - this->data_index);
 
-            ret += toggleDMapIndex(getIndirectPointer(ip->blockDevice, ip->inode->getBlock(indexInodePointer) - this->data_index, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS), ip->blockDevice);
+            ret += toggleDMapIndex(getIndirectPointer(inode->getBlock(indexInodePointer) - this->data_index, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS));
 
         } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR,2)) {
             index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
             index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
             index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK; //TODO copied from Daniel no clue if it works
-            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR))  ret += toggleDMapIndex(ip->inode->getBlock(i) - this->data_index, ip->blockDevice);
+            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR))  ret += toggleDMapIndex(inode->getBlock(i) - this->data_index);
             if (relativeIndex % N_BLOCK_PTR) {
-                indirectAddress = getIndirectPointer(ip->blockDevice,  ip->inode->getBlock(indexInodePointer), indirectPointerIndex);
-                ret += toggleDMapIndex(indirectAddress - this->data_index, ip->blockDevice);
+                indirectAddress = getIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
+                ret += toggleDMapIndex(indirectAddress - this->data_index);
             }
-            ret += toggleDMapIndex(getIndirectPointer(ip->blockDevice, indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS), ip->blockDevice);
+            ret += toggleDMapIndex(getIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS));
 
         } else {
             ret = -EINVAL;
@@ -161,16 +162,16 @@ int Superblock::rmBlocks(InodePointer* ip, off_t numRmvBlocks) {
     }
 }
 
-int Superblock::setInodeDataPointer(InodePointer* ip, int pointerIndex) {
-    index_t freeDataBlock = this->getFreeDataBlockNo(ip->blockDevice);
-    int ret = this->toggleDMapIndex(freeDataBlock, ip->blockDevice);
-    ret += ip->inode->setBlockPointer(pointerIndex, freeDataBlock + this->data_index);
+int Superblock::setInodeDataPointer(Inode* inode, int pointerIndex) {
+    index_t freeDataBlock = this->getFreeDataBlockNo();
+    int ret = this->toggleDMapIndex(freeDataBlock);
+    ret += inode->setBlockPointer(pointerIndex, freeDataBlock + this->data_index);
     return ret;
 }
 
 
-index_t Superblock::setIndirectPointer(BlockDevice* blockDevice, index_t dataBlockNo, off_t byteOffset) {
-    index_t address = this->getFreeDataBlockNo(blockDevice) + this->data_index;
+index_t Superblock::setIndirectPointer(index_t dataBlockNo, off_t byteOffset) {
+    index_t address = this->getFreeDataBlockNo() + this->data_index;
     char buf [BLOCK_SIZE] = {};
     (void) blockDevice->read(dataBlockNo, buf);
     char addrBuf [BYTES_PER_ADDRESS] = {};
@@ -180,7 +181,7 @@ index_t Superblock::setIndirectPointer(BlockDevice* blockDevice, index_t dataBlo
     return address;
 }
 
-index_t Superblock::getIndirectPointer(BlockDevice* blockDevice, index_t dataBlockNo, off_t byteOffset) {
+index_t Superblock::getIndirectPointer( index_t dataBlockNo, off_t byteOffset) {
     index_t address;
     char buf [BLOCK_SIZE] = {};
     (void) blockDevice->read(dataBlockNo, buf);
@@ -194,7 +195,7 @@ index_t Superblock::getIndirectPointer(BlockDevice* blockDevice, index_t dataBlo
 /// \param dataBlockNo the relative Block number that is toggled: therefore the bit changes from 1 -> 0 or 0 -> 1
 /// \param blockDevice blockDevice pointer
 /// \return error code
-int Superblock::toggleDMapIndex(index_t dataBlockNo, BlockDevice* blockDevice) {
+int Superblock::toggleDMapIndex(index_t dataBlockNo) {
     int dMapIndex = dataBlockNo / (BYTE_SIZE * BLOCK_SIZE) + D_MAP_INDEX;
     int dMapByteIndex = (BYTE_SIZE * BLOCK_SIZE) - dataBlockNo % N_BLOCK_PTR;
     char buf [BLOCK_SIZE] = {};
@@ -204,7 +205,7 @@ int Superblock::toggleDMapIndex(index_t dataBlockNo, BlockDevice* blockDevice) {
     return 0;
 }
 
-index_t Superblock::getFreeDataBlockNo(BlockDevice* blockDevice) {
+index_t Superblock::getFreeDataBlockNo() {
     char buf [BLOCK_SIZE] = {};
     for (int dMapIndex = D_MAP_INDEX; dMapIndex < this->i_map_index; dMapIndex++) {
         (void) blockDevice->read(dMapIndex, buf);
