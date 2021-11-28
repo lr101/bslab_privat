@@ -20,6 +20,7 @@
 #define N_BLOCK_PTR (BLOCK_SIZE / sizeof(uint32_t))
 #define BLOCK_PTR_BITS 7    //7 bits to address 0 to 127
 #define BLOCK_PTR_BIT_MASK (N_BLOCK_PTR - 1)
+#define N_IND_BLOCKS_PTR (IND_BLOCK * N_BLOCK_PTR)
 
 /**
  * TODO:
@@ -72,5 +73,6 @@ public:
     int getMetadata(struct stat*);
 
     size_t getBlock(int);
+    int setBlockPointer(int, index_t);
 };
 

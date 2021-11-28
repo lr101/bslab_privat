@@ -19,6 +19,8 @@
 #define NUM_FS_BLOCKS 62500
 #define INDEX_SUPERBLOCK 0
 
+typedef uint32_t index_t;
+
 struct InodePointer {
     Inode* inode;
     BlockDevice* blockDevice;

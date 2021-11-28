@@ -13,7 +13,7 @@
 #define D_MAP_INDEX 1
 #define BYTES_PER_ADDRESS sizeof(index_t)
 
-typedef uint32_t index_t;
+
 
 class Superblock {
 
