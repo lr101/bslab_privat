@@ -1,5 +1,5 @@
 //
-// Created by lukas on 08.10.21.
+// cReATEd bY LuKaS On 08.10.21.
 //
 
 #include "inode.h"
@@ -10,46 +10,34 @@
 /// \param [in] gid Group identification.
 /// \param [in] mode Permissions for file access.
 /// \throws EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-Inode::Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode) {
-    if (name->size() > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
-    this->name = std::string(*name);
-    this->size = 0;
-    this->data = new char[0];
+Inode::Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode) {
+    int nameLength = std::strlen(name) + 1;
+    if (nameLength > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
+    this->name = new char[nameLength];
+    std::memcpy(this->name, name, nameLength);
+    setSize(0);
     this->uid = uid;
     this->gid = gid;
     this->mode = mode;
+    this->s_block = s_block;
     setATime();
     setMTime();
     setCTime();
 }
 
 Inode::~Inode() {
-    delete[] data;
-}
-
-/// Copy constructor for the file class.
-/// \param other [in] Another file to copy from.
-Inode::Inode(const Inode &other) {
-    name = std::string(other.name);
-    size = other.size;
-    uid = other.uid;
-    gid = other.gid;
-    mode = other.mode;
-    atime = other.atime;
-    mtime = other.mtime;
-    ctime = other.ctime;
-    open = other.open;
-
-    data = new char[size];
-    std::memcpy(data, other.data, size);
+    setSize(0);
+    delete this->name;
 }
 
 /// Change the path to the file.
 /// \param name [in] New path to file.
 /// \returns 0 on success, -EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
-int Inode::setName(std::string *name) {
-    if (name->size() > NAME_LENGTH) return -EINVAL;
-    this->name = std::string(*name);
+int Inode::setName(const char *name) {
+    int nameLength = std::strlen(name) + 1;
+    if (nameLength > NAME_LENGTH) return -EINVAL;
+    this->name = new char[nameLength];
+    std::memcpy(this->name, name, nameLength);
     setMTime();
     return 0;
 }
@@ -212,12 +200,28 @@ bool Inode::isOpen() {
 /// \param offset [in] Offset to the location to write the data to.
 /// \returns 0 on success, -EINVAL If size negative, -EBADF If file is not open
 int Inode::write(off_t size, const char* data, off_t offset) {
-    if (!this->open) {return -EBADF;}
+    if (!this->open) return -EBADF;
     if (size < 0) return -EINVAL;
     if (size + offset > this->size) {
         setSize(size + offset);
     }
-    std::memcpy(this->data + offset, data, size);
+    std::vector<index_t> *blockList;
+    int ret = getBlockList(size, offset, blockList);
+    if (ret < 0) return ret;
+    int growingOffset = 0;
+    for (auto &tempBlock : *blockList) {
+        char* buffer = new char[BLOCK_SIZE];
+        this->s_block->getBlockDevice()->read(tempBlock, buffer);
+        if (tempBlock == *blockList->begin()) {
+            std::memcpy(buffer, data, BLOCK_SIZE - (offset & BLOCK_PTR_BIT_MASK));
+            growingOffset += BLOCK_SIZE - (offset & BLOCK_PTR_BIT_MASK);
+        } else if (tempBlock == *blockList->end()) {
+            std::memcpy(buffer, data + growingOffset, size + offset & BLOCK_PTR_BIT_MASK);
+        } else {
+            std::memcpy(buffer, data + growingOffset, BLOCK_SIZE);
+            growingOffset += BLOCK_SIZE;
+        }
+    }
     setMTime();
     return size;
 }
@@ -247,30 +251,32 @@ int Inode::getMetadata(struct stat *statbuf) {
     return 0;
 }
 
-int Inode::getBlockList(InodePointer* inodePtr, off_t size, off_t offset, std::vector<index_t>* blockList) {
+int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockList) {
     if (size < 0 || size + offset > this->size) return -EINVAL;
     index_t startBlockIndex = offset / BLOCK_SIZE;
     index_t endBlockIndex = (size + offset) / BLOCK_SIZE;
     int ret = 0;
 
     for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
-        if (i < DIR_BLOCK) {
+        int currentBlockIndex = i;
 
-            blockList->push_back(this->block[i]);
+        if (currentBlockIndex < DIR_BLOCK) {
 
-        } else if (i -= DIR_BLOCK < IND_BLOCK * N_BLOCK_PTR) {
+            blockList->push_back(this->block[currentBlockIndex]);
+
+        } else if ((currentBlockIndex -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
 
             char *buffer = new char[BLOCK_SIZE];
-            ret += inodePtr->blockDevice->read(this->block[(i >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
-            blockList->push_back(*(index_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
+            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
+            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
 
-        } else if (i -= IND_BLOCK * N_BLOCK_PTR < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
+        } else if ((currentBlockIndex -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
 
             char *buffer = new char[BLOCK_SIZE];
-            ret += inodePtr->blockDevice->read(this->block[(i >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
-            ret += inodePtr->blockDevice->read(*(index_t *) (buffer[i >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
-            blockList->push_back(*(index_t *) (buffer[i & BLOCK_PTR_BIT_MASK]));
+            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
+            ret += s_block->getBlockDevice()->read(*(index_t *) (buffer[currentBlockIndex >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
+            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
             delete[] buffer;
 
         } else {

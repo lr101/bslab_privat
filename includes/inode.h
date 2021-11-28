@@ -1,5 +1,5 @@
 //
-// Created by lukas on 08.10.21.
+// cReATEd bY LuKaS On 08.10.21.
 //
 
 #pragma once
@@ -29,7 +29,7 @@
  */
 
 class Inode {
-    size_t size;
+    size_t size;                ///< Size in bytes of the entire data part
     uid_t uid;                  ///< User identifier
     gid_t gid;                  ///< Group identifier
     mode_t mode;                ///< Permissions for file access
@@ -38,43 +38,41 @@ class Inode {
     time_t ctime;               ///< Time of last status change
     bool open = false;          ///< True if file is open
     char* name;                 ///< Name of file
-    index_t block[N_BLOCKS];   ///< Block List, pointer to either blocks or more pointer
+    index_t block[N_BLOCKS];    ///< Block List, pointer to either blocks or more pointer
+    Superblock* s_block;
 
     int setATime();
     int setMTime();
     int setCTime();
 
-    int getBlockList(InodePointer*, off_t, off_t, std::vector<index_t>*);
+    int getBlockList(off_t size, off_t offset, std::vector<index_t> *blockList);
 public:
-    Inode(std::string *name, uid_t uid, gid_t gid, mode_t mode);
+    Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
-    Inode(const Inode&);
 
-
-    int setName(std::string*);
-    int setSize(off_t, off_t, InodePointer*);
-    int setUserID(uid_t);
-    int setGroupID(gid_t);
-    int setMode(mode_t);
+    int setName(const char *name);
+    int setSize(off_t size);
+    int setUserID(uid_t uid);
+    int setGroupID(gid_t gid);
+    int setMode(mode_t mode);
     int setOpen();
     int setClose();
-    int write(off_t, const char*, off_t);
+    int write(off_t size, const char *data, off_t offset);
 
-    int getName(std::string*);
-    int getSize(off_t*);
-    int getUserID(uid_t*);
-    int getGroupID(gid_t*);
-    int getMode(mode_t*);
-    int getATime(std::time_t*);
-    int getMTime(std::time_t*);
-    int getCTime(std::time_t*);
+    int getName(const char *name);
+    int getSize(off_t *size);
+    int getUserID(uid_t *uid);
+    int getGroupID(gid_t *gid);
+    int getMode(mode_t *mode);
+    int getATime(std::time_t *atime);
+    int getMTime(std::time_t *mtime);
+    int getCTime(std::time_t *ctime);
     bool isOpen();
-    int getData(off_t, char*, off_t);
-    int getMetadata(struct stat*);
-
-    int setSize(off_t size, off_t offset, InodePointer *ip);
+    int getData(off_t offset, char *data, off_t size);
+    int getMetadata(struct stat *statbuf);
 
     size_t getBlock(int);
     int setBlockPointer(int, index_t);
+
 };
 
