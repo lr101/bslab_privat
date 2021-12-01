@@ -127,8 +127,8 @@ int Inode::setClose() {
 /// Get the file path.
 /// \param [out] name pointer containing file name
 /// \returns 0 on success
-int Inode::getName(std::string *name) {
-    *name = std::string(this->name);
+int Inode::getName(const char *name) {
+    *name = std::string(this->name).c_str();
     return 0;
 }
 
@@ -230,13 +230,13 @@ int Inode::write(off_t size, const char* data, off_t offset) {
 /// \param offset [in] Offset from the beginning of the data.
 /// \param data [out] Pointer to the requested data.
 /// \returns 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
-int Inode::getData(InodePointer *inodePointer, off_t offset, char *data, off_t size) {
+int Inode::getData(off_t offset, char *data, off_t size) {
     if (!this->open) { return -EBADF; }
-    if (offset > this->blocks) return -EINVAL;
+    if (offset > this->size / BLOCK_SIZE) return -EINVAL;
 
     std::vector<uint32_t> *dataBlocks;
-    this->getBlockList(inodePointer, size, offset, dataBlocks);
-    char *requiredData = this->collectDataFromBlocks(offset, size, inodePointer,dataBlocks);
+    this->getBlockList(size, offset, dataBlocks);
+    char *requiredData = this->collectDataFromBlocks(offset, size, dataBlocks);
     memcpy(data, requiredData, size);
     setATime();
     return 0;
@@ -302,14 +302,14 @@ int Inode::setBlockPointer(int index, index_t blockNo) {
     return 0;
 }
 
-char *Inode::collectDataFromBlocks(off_t offset, off_t size, InodePointer* inodePointer, std::vector<uint32_t>* dataBlocks) {
+char *Inode::collectDataFromBlocks(off_t offset, off_t size, std::vector<uint32_t>* dataBlocks) {
     uint32_t startBlockIndex = offset / BLOCK_SIZE;
     uint32_t endBlockIndex = (size + offset) / BLOCK_SIZE;
     uint32_t numberOfBlocks = endBlockIndex - startBlockIndex;
     char *requiredData = new char[size-offset];
     for (int i = 0; i < numberOfBlocks; i++) {
         char *buffer = new char[BLOCK_SIZE];
-        inodePointer->blockDevice->read(dataBlocks->at(i), buffer);
+        s_block->getBlockDevice()->read(dataBlocks->at(i), buffer);
 
         if (i == 0) {
             uint32_t startBlockByte = offset % BLOCK_SIZE;

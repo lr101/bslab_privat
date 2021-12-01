@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "myfs-structs.h"
+#include "inode.h"
 
 #define BYTE_SIZE 8
 #define SUPERBLOCK_SIZE 1
@@ -26,7 +27,7 @@ class Superblock {
     static size_t calImapSize(size_t i_node_num);
     static size_t calDmapSize (size_t size);
 private:
-    int getINode(index_t, InodePointer*, BlockDevice* blockDevice);
+    int getINode(index_t, struct InodePointer*, BlockDevice* blockDevice);
 
 public:
     Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice);
@@ -40,7 +41,7 @@ public:
     index_t getDataIndex();
     BlockDevice* getBlockDevice();
 
-    int loadINodes(BlockDevice*, InodePointer*);
+    int loadINodes(BlockDevice*, struct InodePointer*);
 
     int addBlocks(Inode* , off_t , off_t );
 

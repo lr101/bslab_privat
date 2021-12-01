@@ -443,7 +443,7 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             auto* ip = new InodePointer;
             ret += this->s_block->loadINodes(this->blockDevice, ip);
 
-            std::string path;
+            s path;
             ret += ip->inode->getName(&path);
 
             files[path] = ip;

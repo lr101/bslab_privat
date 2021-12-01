@@ -123,6 +123,7 @@ int Superblock::addBlocks(Inode* inode, off_t offset, off_t numNewBlocks) {
             ret = -EINVAL;
         }
     }
+    return ret;
 }
 
 int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks) {
@@ -160,6 +161,7 @@ int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks) {
             ret = -EINVAL;
         }
     }
+    return ret;
 }
 
 int Superblock::setInodeDataPointer(Inode* inode, int pointerIndex) {
