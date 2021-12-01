@@ -23,6 +23,7 @@ private:
     int loadINodes();
     int getINode(index_t, InodePointer*);
     int getFreeINodeIndex();
+    int writeInode(InodePointer*);
 
 protected:
     BlockDevice* blockDevice;
