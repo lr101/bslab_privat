@@ -15,7 +15,7 @@ Inode::Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t
     if (nameLength > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
     this->name = new char[nameLength];
     std::memcpy(this->name, name, nameLength);
-    setSize(0);
+    //setSize(0);
     this->uid = uid;
     this->gid = gid;
     this->mode = mode;

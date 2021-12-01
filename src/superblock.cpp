@@ -222,12 +222,13 @@ BlockDevice* Superblock::getBlockDevice() {
 int Superblock::getFreeInodeIndex(char *buf) {
 
     for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
-        if ((*buf >> indexBit) & 1 == 0) {
-            return indexBit + this->i_map_index;
+        if ((*buf >> indexBit) & 1) {
+            return indexBit;
         }
-}}
+    }
+}
 
 char* Superblock::flipBitInNode(int index, char* buf) {
-    *buf |= 1 << index;
+    *buf |= (1 << index);
     return buf;
 }

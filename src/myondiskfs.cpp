@@ -62,20 +62,17 @@ int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
         try {
             Inode * inode = new Inode(this->s_block, path, getuid(), getgid(), mode);
-            LOG("1");
             char* buf = new char[BLOCK_SIZE];
             this->blockDevice->read(this->s_block->getIMapIndex(), buf);
-            LOG("2");
             int index = this->s_block->getFreeInodeIndex(buf);
-            LOG("3");
-            buf = this->s_block->flipBitInNode(index,buf);
+            this->blockDevice->write(this->s_block->getIMapIndex(), this->s_block->flipBitInNode(index,buf));
             auto *ip = new struct InodePointer();
-            LOG("5");
             ip->inode = inode;
             ip->blockDevice = this->blockDevice;
+            LOGF("!!!!!!!!!!!!!!!!!!!!!!!!!!!Free inode index: %d", index);
             ip->blockNo = this->s_block->getINodeIndex() + index;
+            //ip->blockNo = this->s_block->getFreeInodeIndex();
             this->files[path] = ip;
-            LOG("6");
             // write inode to blockdevice
             int ret = writeInode(ip);
             if (ret != 0) { RETURN(ret);}
@@ -498,8 +495,9 @@ void MyOnDiskFS::fuseDestroy() {
 /// \param ip [in] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
 /// \return 0 on success
 int MyOnDiskFS::writeInode(InodePointer* ip) {
-    // todo: consider throwing error if file open
-    int ret = this->blockDevice->write(ip->blockNo,(char *) ip->inode);
+    char buf [BLOCK_SIZE] = {};
+    std::memcpy(buf, ip->inode, sizeof(Inode));
+    int ret = this->blockDevice->write(ip->blockNo,buf);
     return ret;
 }
 
