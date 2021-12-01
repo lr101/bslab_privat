@@ -127,8 +127,8 @@ int Inode::setClose() {
 /// Get the file path.
 /// \param [out] name pointer containing file name
 /// \returns 0 on success
-int Inode::getName(const char *name) {
-    *name = std::string(this->name).c_str();
+int Inode::getName(char *name) {
+    std::strcpy(name, this->name);
     return 0;
 }
 

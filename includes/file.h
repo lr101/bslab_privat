@@ -2,7 +2,8 @@
 // Created by lukas on 08.10.21.
 //
 
-#pragma once
+#ifndef file_h
+#define file_h
 
 #include <ctime>
 #include <cstring>
@@ -55,3 +56,4 @@ public:
     int getMetadata(struct stat*);
 };
 
+#endif /* file_h */

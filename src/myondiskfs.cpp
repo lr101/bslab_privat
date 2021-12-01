@@ -59,21 +59,23 @@ MyOnDiskFS::~MyOnDiskFS() {
 int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
-    char buf[BLOCK_SIZE];
     if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
-        std::string newName = path;
         try {
-            Inode * inode = new Inode(&newName, getuid(), getgid(), mode);
+            Inode * inode = new Inode(this->s_block, path, getuid(), getgid(), mode);
+            LOG("1");
             char* buf = new char[BLOCK_SIZE];
             this->blockDevice->read(this->s_block->getIMapIndex(), buf);
+            LOG("2");
             int index = this->s_block->getFreeInodeIndex(buf);
+            LOG("3");
             buf = this->s_block->flipBitInNode(index,buf);
             auto *ip = new struct InodePointer();
+            LOG("5");
             ip->inode = inode;
             ip->blockDevice = this->blockDevice;
             ip->blockNo = this->s_block->getINodeIndex() + index;
             this->files[path] = ip;
-
+            LOG("6");
             // write inode to blockdevice
             int ret = writeInode(ip);
             if (ret != 0) { RETURN(ret);}
@@ -134,7 +136,7 @@ int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
         std::string newPathString = std::string(newpath);
         this->files.insert({newPathString, std::move(value)});
         InodePointer* ip = this->files.find(newpath)->second;
-        ip->inode->setName(&newPathString); // TODO: exception handling
+        ip->inode->setName(newpath); // TODO: exception handling
         RETURN(writeInode(ip));
     } else {
         RETURN(-ENOENT);
@@ -377,7 +379,7 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_i
     LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
     int ret;
     if (files.find(path) == files.end()) { ret =-EBADF; }
-    if (ret == 0) { ret = files[path]->inode->setSize(newSize) };
+    if (ret == 0) { ret = files[path]->inode->setSize(newSize); }
     if (ret == 0) { ret = writeInode(files[path]); }
     RETURN(ret);
 }
@@ -440,18 +442,19 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
             this->s_block = (Superblock*) malloc(sizeof(Superblock));
             ret = this->blockDevice->read(INDEX_SUPERBLOCK, buf);
             std::memcpy(this->s_block, buf, sizeof(Superblock));
+            LOG("Sblock probably loaded");
             auto* ip = new InodePointer;
             ret += this->s_block->loadINodes(this->blockDevice, ip);
 
-            s path;
-            ret += ip->inode->getName(&path);
+            char* path = new char[NAME_LENGTH];
+            ret += ip->inode->getName(path);
 
-            files[path] = ip;
+            files[std::string(path)] = ip;
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);
             if (ret >= 0) {
-                this->s_block = new Superblock(NUM_FS_BLOCKS, NUM_DIR_ENTRIES);
+                this->s_block = new Superblock(NUM_FS_BLOCKS, NUM_DIR_ENTRIES, this->blockDevice);
                 std::memcpy(buf, this->s_block, sizeof(*this->s_block));
                 ret += this->blockDevice->write(INDEX_SUPERBLOCK, buf);
             }

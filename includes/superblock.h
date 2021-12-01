@@ -1,20 +1,31 @@
 //
 // Created by lukas on 11.11.2021.
 //
-#pragma once
+
+#ifndef superblock_h
+#define superblock_h
 
 #include <cmath>
-#include <cstdint>
-
-#include "myfs-structs.h"
 #include "inode.h"
+#include "myfs-structs.h"
+#include "blockdevice.h"
 
 #define BYTE_SIZE 8
 #define SUPERBLOCK_SIZE 1
 #define D_MAP_INDEX 1
 #define BYTES_PER_ADDRESS sizeof(index_t)
 
+class Inode;
+class BlockDevice;
+
 typedef uint32_t index_t;
+
+struct InodePointer {
+    Inode* inode;
+    BlockDevice* blockDevice;
+
+    index_t blockNo;
+};
 
 class Superblock {
 
@@ -43,7 +54,7 @@ public:
 
     int loadINodes(BlockDevice*, struct InodePointer*);
 
-    int addBlocks(Inode* , off_t , off_t );
+    int addBlocks(Inode* , off_t );
 
     int rmBlocks(Inode*, off_t);
 
@@ -61,3 +72,4 @@ public:
     char* flipBitInNode (int index, char* buf);
 };
 
+#endif /* superblock_h */

@@ -2,7 +2,8 @@
 // cReATEd bY LuKaS On 08.10.21.
 //
 
-#pragma once
+#ifndef inode_h
+#define inode_h
 
 #include <ctime>
 #include <cstring>
@@ -11,7 +12,6 @@
 #include <sys/stat.h>
 #include <vector>
 
-#include "myfs-structs.h"
 #include "superblock.h"
 
 #define DIR_BLOCK 4
@@ -19,14 +19,12 @@
 #define DIND_BLOCK 2
 #define N_BLOCKS (DIR_BLOCK + IND_BLOCK + DIND_BLOCK)
 #define N_BLOCK_PTR (BLOCK_SIZE / sizeof(uint32_t))
-#define BLOCK_PTR_BITS 7    //7 bits to address 0 to 127
+#define BLOCK_PTR_BITS 7    //7 bits to address 0 to 12
 #define BLOCK_PTR_BIT_MASK (N_BLOCK_PTR - 1)
 #define N_IND_BLOCKS_PTR (IND_BLOCK * N_BLOCK_PTR)
 
-/**
- * TODO:
- * move define statements to myfs_structs?
- */
+typedef uint32_t index_t;
+class Superblock;
 
 class Inode {
     size_t size;                ///< Size in bytes of the entire data part
@@ -60,7 +58,7 @@ public:
     int setClose();
     int write(off_t size, const char *data, off_t offset);
 
-    int getName(const char *name);
+    int getName(char *name);
     int getSize(off_t *size);
     int getUserID(uid_t *uid);
     int getGroupID(gid_t *gid);
@@ -76,3 +74,4 @@ public:
     int setBlockPointer(int, index_t);
 };
 
+#endif /* inode_h */

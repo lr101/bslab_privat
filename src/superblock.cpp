@@ -57,13 +57,7 @@ int Superblock::loadINodes(BlockDevice* blockDevice, InodePointer* ip) {
     if (ret >= 0) {
         for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
             if (((*buf >> indexBit) & 1) == 1) {
-
                 ret += this->getINode(this->getINodeIndex() + indexBit, ip, blockDevice);
-
-                if (ret >= 0) {
-                    std::string path;
-                    ret += ip->inode->getName(&path);
-                }
             }
         }
     }
@@ -88,7 +82,7 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip, BlockDevice* blockDe
 }
 
 
-int Superblock::addBlocks(Inode* inode, off_t offset, off_t numNewBlocks) {
+int Superblock::addBlocks(Inode* inode, off_t numNewBlocks) {
     off_t inodeSize;
     int ret = inode->getSize(&inodeSize);
     index_t startBlockIndex = inodeSize / BLOCK_SIZE + 1; //TODO dont know if +1 is correct here
