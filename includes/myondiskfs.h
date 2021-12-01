@@ -22,6 +22,7 @@ class MyOnDiskFS : public MyFS {
 private:
     int loadINodes();
     int getINode(index_t, InodePointer*);
+    int getFreeINodeIndex();
 
 protected:
     BlockDevice* blockDevice;
@@ -56,7 +57,7 @@ public:
     virtual int fuseTruncate(const char *path, off_t offset, struct fuse_file_info *fileInfo);
     virtual void fuseDestroy();
 
-    int getFreeINodeIndex();
+
 };
 
 #endif //MYFS_MYONDISKFS_H

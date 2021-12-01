@@ -223,3 +223,15 @@ index_t Superblock::getFreeDataBlockNo() {
 BlockDevice* Superblock::getBlockDevice() {
     return this->blockDevice;
 }
+int Superblock::getFreeInodeIndex(char *buf) {
+
+    for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
+        if ((*buf >> indexBit) & 1 == 0) {
+            return indexBit + this->i_map_index;
+        }
+}}
+
+char* Superblock::flipBitInNode(int index, char* buf) {
+    *buf |= 1 << index;
+    return buf;
+}

@@ -59,16 +59,21 @@ MyOnDiskFS::~MyOnDiskFS() {
 int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
+    char buf[BLOCK_SIZE];
     if (this->files.find(path) == this->files.end() && this->files.size() < NUM_DIR_ENTRIES) {
         std::string newName = path;
         try {
-            Inode * inode = new Inode(newName, getuid(), getgid(), mode);
-            int index = this->getFreeINodeIndex();
+            Inode * inode = new Inode(&newName, getuid(), getgid(), mode);
+            char* buf = new char[BLOCK_SIZE];
+            this->blockDevice->read(this->s_block->getIMapIndex(), buf);
+            int index = this->s_block->getFreeInodeIndex(buf);
+            buf = this->s_block->flipBitInNode(index,buf);
             auto *ip = new struct InodePointer();
             ip->inode = inode;
             ip->blockDevice = this->blockDevice;
             ip->blockNo = this->s_block->getINodeIndex() + index;
             this->files[path] = ip;
+            this->blockDevice->write(ip->blockNo,buf);
         } catch (const std::exception &e) {
             LOGF("Error creating new file: %s", e.what());
             RETURN(-EINVAL);
@@ -82,16 +87,7 @@ int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     RETURN(0);
 }
 
-int MyOnDiskFS::getFreeINodeIndex() {
-    int ret = this->blockDevice->read(this->s_block->getIMapIndex(), puffer);
-    if (ret == 0) {
-        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
-            if (((*puffer << indexBit) >> (BLOCK_SIZE * 8)) != 0) {
-                return indexBit;
-            }
-        }
-    }
-}
+
 
 /// @brief Delete a file.
 ///

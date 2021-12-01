@@ -46,6 +46,8 @@ class Inode {
     int setCTime();
 
     int getBlockList(off_t size, off_t offset, std::vector<index_t> *blockList);
+    int getBlockList(InodePointer*, off_t, off_t, std::vector<uint32_t>*);
+    char *collectDataFromBlocks(off_t offset, off_t size, InodePointer *inodePointer, std::vector<uint32_t>* blockList);
 public:
     Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
@@ -73,6 +75,11 @@ public:
 
     size_t getBlock(int);
     int setBlockPointer(int, index_t);
+
+    int getData(InodePointer*, off_t, char*, off_t);
+    int getMetadata(struct stat*);
+
+
 
 };
 

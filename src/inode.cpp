@@ -230,12 +230,16 @@ int Inode::write(off_t size, const char* data, off_t offset) {
 /// \param offset [in] Offset from the beginning of the data.
 /// \param data [out] Pointer to the requested data.
 /// \returns 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
-int Inode::getData(off_t offset, char* data, off_t size) {
-    if (!this->open) {return -EBADF;}
-    if (offset > this->size) return -EINVAL;
-    std::memcpy(data, this->data + offset, size);
+int Inode::getData(InodePointer *inodePointer, off_t offset, char *data, off_t size) {
+    if (!this->open) { return -EBADF; }
+    if (offset > this->blocks) return -EINVAL;
+
+    std::vector<uint32_t> *dataBlocks;
+    this->getBlockList(inodePointer, size, offset, dataBlocks);
+    char *requiredData = this->collectDataFromBlocks(offset, size, inodePointer,dataBlocks);
+    memcpy(data, requiredData, size);
     setATime();
-    return size;
+    return 0;
 }
 /// Get the metadata of a file (user & group id, modification times, permissions, ...).
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
@@ -296,4 +300,30 @@ int Inode::setBlockPointer(int index, index_t blockNo) {
     if (index >= 0 && index < N_BLOCKS) return -EINVAL;
     this->block[index] = blockNo;
     return 0;
+}
+
+char *Inode::collectDataFromBlocks(off_t offset, off_t size, InodePointer* inodePointer, std::vector<uint32_t>* dataBlocks) {
+    uint32_t startBlockIndex = offset / BLOCK_SIZE;
+    uint32_t endBlockIndex = (size + offset) / BLOCK_SIZE;
+    uint32_t numberOfBlocks = endBlockIndex - startBlockIndex;
+    char *requiredData = new char[size-offset];
+    for (int i = 0; i < numberOfBlocks; i++) {
+        char *buffer = new char[BLOCK_SIZE];
+        inodePointer->blockDevice->read(dataBlocks->at(i), buffer);
+
+        if (i == 0) {
+            uint32_t startBlockByte = offset % BLOCK_SIZE;
+            for (int bufferIndex = startBlockByte; bufferIndex < size || bufferIndex < BLOCK_SIZE; i++) {
+                *requiredData += buffer[bufferIndex];
+            }
+        } else if (i == numberOfBlocks - 1) {
+            uint32_t endBlockByte = (size + offset) % BLOCK_SIZE;
+            for (int bufferIndex = 0; bufferIndex < endBlockByte; i++) {
+                *requiredData += buffer[bufferIndex];
+            }
+        } else { *requiredData += *buffer; }
+
+        delete[] buffer;
+    }
+    return requiredData;
 }

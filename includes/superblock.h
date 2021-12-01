@@ -56,5 +56,7 @@ public:
 
     int setInodeDataPointer(Inode*, int pointerIndex);
 
+    int getFreeInodeIndex(char* buf);
+    char* flipBitInNode (int index, char* buf);
 };
 
