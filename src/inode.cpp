@@ -47,16 +47,21 @@ int Inode::setName(const char *name) {
 /// \returns 0 on success
 int Inode::setSize(off_t size) {
     if (size < 0) return -EINVAL;
+    int ret = 0;
     if (this->size > size) {
-         off_t numRmvBlocks = (this->size - size) / BLOCK_SIZE;
-         this->s_block->rmBlocks(this, numRmvBlocks);
+        std::vector<index_t> *blockList = new std::vector<index_t>();
+        ret += getBlockList(this->size, this->size - size, blockList);
+        for (auto &tempBlock : *blockList) {
+            ret += this->s_block->removeDBlock(tempBlock);
+        }
+        delete blockList;
     } else {
         off_t numNewBlocks = (size - this->size) / BLOCK_SIZE;
         this->s_block->addBlocks(this, numNewBlocks);
     }
     this->size = size;
     setMTime();
-    return 0;
+    return ret;
 }
 
 /// Change the user identification.
