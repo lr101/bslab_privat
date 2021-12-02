@@ -219,16 +219,19 @@ index_t Superblock::getFreeDataBlockNo() {
 BlockDevice* Superblock::getBlockDevice() {
     return this->blockDevice;
 }
-int Superblock::getFreeInodeIndex(char *buf) {
-
+int Superblock::getFreeInodeIndex() {
+    char buf [BLOCK_SIZE] = {};
+    this->blockDevice->read(this->getIMapIndex(), buf);
     for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
-        if ((*buf >> indexBit) & 1) {
-            return indexBit;
+        if (((*buf >> indexBit) & 1) == 0) {
+            int ret = this->flipBitInNode(indexBit, buf);
+            return (ret < 0 ? ret : indexBit);
         }
     }
+    return -EINVAL;
 }
 
-char* Superblock::flipBitInNode(int index, char* buf) {
+int Superblock::flipBitInNode(int index, char* buf) {
     *buf |= (1 << index);
-    return buf;
+    return this->blockDevice->write(this->getIMapIndex(), buf);
 }
