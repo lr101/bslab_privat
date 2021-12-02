@@ -64,6 +64,10 @@ int Inode::setSize(off_t size) {
     return ret;
 }
 
+index_t Inode::getBlockAmount(off_t bytes) {
+    return (bytes >> 9) + (bytes & BLOCK_SIZE - 1 ? 1 : 0); //9 -> 512 = 2^9; 512 - 1 -> 511 = 0x1FF
+}
+
 /// Change the user identification.
 /// \param uid [in] New user id.
 /// \returns 0 on success
