@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "superblock.h"
+#include "myfs-structs.h"
 
 #define DIR_BLOCK 4
 #define IND_BLOCK 4
@@ -35,7 +36,7 @@ class Inode {
     time_t mtime;               ///< Time of last change
     time_t ctime;               ///< Time of last status change
     bool open = false;          ///< True if file is open
-    char* name;                 ///< Name of file
+    char name [NAME_LENGTH];                 ///< Name of file
     index_t block[N_BLOCKS];    ///< Block List, pointer to either blocks or more pointer
     Superblock* s_block;
 

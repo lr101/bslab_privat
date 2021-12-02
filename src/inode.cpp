@@ -13,7 +13,6 @@
 Inode::Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode) {
     int nameLength = std::strlen(name) + 1;
     if (nameLength > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
-    this->name = new char[nameLength];
     std::memcpy(this->name, name, nameLength);
     //setSize(0);
     this->uid = uid;
@@ -27,7 +26,6 @@ Inode::Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t
 
 Inode::~Inode() {
     setSize(0);
-    delete this->name;
 }
 
 /// Change the path to the file.
@@ -36,7 +34,6 @@ Inode::~Inode() {
 int Inode::setName(const char *name) {
     int nameLength = std::strlen(name) + 1;
     if (nameLength > NAME_LENGTH) return -EINVAL;
-    this->name = new char[nameLength];
     std::memcpy(this->name, name, nameLength);
     setMTime();
     return 0;

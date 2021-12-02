@@ -38,7 +38,7 @@ class Superblock {
     static size_t calImapSize(size_t i_node_num);
     static size_t calDmapSize (size_t size);
 private:
-    int getINode(index_t, struct InodePointer*, BlockDevice* blockDevice);
+    int getINode(index_t, struct InodePointer*);
 
 public:
     Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice);
@@ -51,8 +51,9 @@ public:
     index_t getINodeIndex();
     index_t getDataIndex();
     BlockDevice* getBlockDevice();
+    int setBlockDevice(BlockDevice* pBlockDevice);
 
-    int loadINodes(BlockDevice*, struct InodePointer*);
+    int loadINodes(std::vector<InodePointer*>* iNodes);
 
     int addBlocks(Inode* , off_t );
 
@@ -69,7 +70,7 @@ public:
     int setInodeDataPointer(Inode*, int pointerIndex);
 
     int getFreeInodeIndex();
-    int flipBitInNode (int index, char* buf);
+    int flipBitInNode (int index, bool* buf);
 };
 
 #endif /* superblock_h */

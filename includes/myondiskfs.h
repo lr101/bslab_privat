@@ -18,9 +18,6 @@
 /// @brief On-disk implementation of a simple file system.
 class MyOnDiskFS : public MyFS {
 private:
-    int loadINodes();
-    int getINode(index_t, InodePointer*);
-    int getFreeINodeIndex();
     int writeInode(InodePointer*);
 
 protected:
@@ -31,7 +28,6 @@ public:
 
     std::map<std::string, InodePointer*> files;
     Superblock* s_block;
-    char* puffer;
 
     MyOnDiskFS();
     ~MyOnDiskFS();

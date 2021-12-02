@@ -435,17 +435,22 @@ void* MyOnDiskFS::fuseInit(struct fuse_conn_info *conn) {
 
         if(ret >= 0) {
             LOG("Container file does exist, reading");
+
             this->s_block = (Superblock*) malloc(sizeof(Superblock));
-            ret = this->blockDevice->read(INDEX_SUPERBLOCK, buf);
-            std::memcpy(this->s_block, buf, sizeof(Superblock));
-            LOG("Sblock probably loaded");
-            auto* ip = new InodePointer;
-            ret += this->s_block->loadINodes(this->blockDevice, ip);
+            ret += this->blockDevice->read(INDEX_SUPERBLOCK, buf);
+            (void)std::memcpy(this->s_block, buf, sizeof(Superblock));
 
-            char* path = new char[NAME_LENGTH];
-            ret += ip->inode->getName(path);
+            ret += s_block->setBlockDevice(blockDevice);
+            std::vector<InodePointer*> iNode;
+            ret += this->s_block->loadINodes(&iNode);
 
-            files[std::string(path)] = ip;
+            for (const auto& ip : iNode) {
+                char path [NAME_LENGTH] = {};
+                ret += ip->inode->getName(path);
+                files[path] = ip;
+                LOGF("File loaded: %s", path);
+            }
+
         } else if(ret == -ENOENT) {
             LOG("Container file does not exist, creating a new one");
             ret = this->blockDevice->create(((MyFsInfo *) fuse_get_context()->private_data)->contFile);

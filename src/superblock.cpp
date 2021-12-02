@@ -2,6 +2,7 @@
 // Created by lukas on 11.11.2021.
 //
 
+#include <iostream>
 #include "superblock.h"
 
 Superblock::Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice) {
@@ -51,14 +52,14 @@ index_t Superblock::getDataIndex() {
 /// \param
 /// \return 0 on success -ERRNO on failure.
 
-int Superblock::loadINodes(BlockDevice* blockDevice, InodePointer* ip) {
-    char buf [BLOCK_SIZE] = {};
-    int ret  = blockDevice->read(this->getIMapIndex(), buf);
-    if (ret >= 0) {
-        for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
-            if (((*buf >> indexBit) & 1) == 1) {
-                ret += this->getINode(this->getINodeIndex() + indexBit, ip, blockDevice);
-            }
+int Superblock::loadINodes(std::vector<InodePointer*>* iNodes) {
+    bool buf [BLOCK_SIZE*BYTE_SIZE] = {};
+    int ret = this->blockDevice->read(this->getIMapIndex(), (char*) buf);
+    for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES && ret == 0; indexBit++) {
+        if (buf[indexBit]) {
+            auto ip = new struct InodePointer();
+            ret += this->getINode(this->getINodeIndex() + indexBit, ip);
+            iNodes->push_back(ip);
         }
     }
     return ret;
@@ -71,7 +72,7 @@ int Superblock::loadINodes(BlockDevice* blockDevice, InodePointer* ip) {
 /// \param blockNo [in] block number in BLockDevice
 /// \param ip [out] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
 /// \return 0 on success
-int Superblock::getINode(index_t blockNo, InodePointer* ip, BlockDevice* blockDevice) {
+int Superblock::getINode(index_t blockNo, InodePointer* ip) {
     ip->inode = (Inode*) malloc(sizeof(Inode));
     ip->blockNo = blockNo;
     ip->blockDevice = blockDevice;
@@ -202,11 +203,11 @@ int Superblock::toggleDMapIndex(index_t dataBlockNo) {
 }
 
 index_t Superblock::getFreeDataBlockNo() {
-    char buf [BLOCK_SIZE] = {};
+    bool buf [BLOCK_SIZE * BYTE_SIZE] = {};
     for (int dMapIndex = D_MAP_INDEX; dMapIndex < this->i_map_index; dMapIndex++) {
-        (void) blockDevice->read(dMapIndex, buf);
+        (void) blockDevice->read(dMapIndex, (char*) buf);
         for (int i = 0; i < BLOCK_SIZE * BYTE_SIZE; i++) {
-            if (((*buf >> i) & 1) == 0) {
+            if (buf[i]) {
                 return dMapIndex * BLOCK_SIZE * BYTE_SIZE + i;
             }
         }
@@ -220,10 +221,10 @@ BlockDevice* Superblock::getBlockDevice() {
     return this->blockDevice;
 }
 int Superblock::getFreeInodeIndex() {
-    char buf [BLOCK_SIZE] = {};
-    this->blockDevice->read(this->getIMapIndex(), buf);
+    bool buf [BLOCK_SIZE * BYTE_SIZE] = {};
+    this->blockDevice->read(this->getIMapIndex(), (char*) buf);
     for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES; indexBit++) {
-        if (((*buf >> indexBit) & 1) == 0) {
+        if (!buf[indexBit]) {
             int ret = this->flipBitInNode(indexBit, buf);
             return (ret < 0 ? ret : indexBit);
         }
@@ -231,7 +232,12 @@ int Superblock::getFreeInodeIndex() {
     return -EINVAL;
 }
 
-int Superblock::flipBitInNode(int index, char* buf) {
-    *buf |= (1 << index);
-    return this->blockDevice->write(this->getIMapIndex(), buf);
+int Superblock::flipBitInNode(int index, bool* buf) {
+    buf[index] = !buf[index];
+    return this->blockDevice->write(this->getIMapIndex(), (char*) buf);
+}
+
+int Superblock::setBlockDevice(BlockDevice *pBlockDevice) {
+    this->blockDevice = pBlockDevice;
+    return 0;
 }
