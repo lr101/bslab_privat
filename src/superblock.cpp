@@ -81,6 +81,21 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip, BlockDevice* blockDe
     return 0;
 }
 
+int Superblock::removeDBlock(index_t blockIndex) {
+    if (blockIndex < getDataIndex()) return -EINVAL;
+    int ret = 0;
+    blockIndex -= getDataIndex();
+    char buf[BLOCK_SIZE];
+    ret = blockDevice->read(getIMapIndex(), buf);
+    if (*buf & (1 << blockIndex)) {
+        *buf ^= (1 << blockIndex);
+    } else {
+        ret = -EINVAL;  //data block isn't used yet
+    }
+    blockDevice->write(getIMapIndex(), buf);
+    return ret;
+}
+
 
 int Superblock::addBlocks(Inode* inode, off_t numNewBlocks) {
     off_t inodeSize;

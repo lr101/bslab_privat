@@ -28,7 +28,7 @@ struct InodePointer {
 };
 
 class Superblock {
-
+private:
     size_t size; //blocks
     index_t i_map_index;
     index_t i_node_index;
@@ -37,8 +37,8 @@ class Superblock {
 
     static size_t calImapSize(size_t i_node_num);
     static size_t calDmapSize (size_t size);
-private:
     int getINode(index_t, struct InodePointer*, BlockDevice* blockDevice);
+
 
 public:
     Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice);
@@ -57,6 +57,7 @@ public:
     int addBlocks(Inode* , off_t );
 
     int rmBlocks(Inode*, off_t);
+    int removeDBlock(index_t blockIndex);
 
     int toggleDMapIndex(index_t );
 
