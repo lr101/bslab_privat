@@ -205,7 +205,7 @@ int Inode::write(off_t size, const char* data, off_t offset) {
     if (size + offset > this->size) {
         setSize(size + offset);
     }
-    std::vector<index_t> *blockList;
+    std::vector<index_t> *blockList = new std::vector<index_t>();
     int ret = getBlockList(size, offset, blockList);
     if (ret < 0) return ret;
     int growingOffset = 0;
@@ -223,6 +223,7 @@ int Inode::write(off_t size, const char* data, off_t offset) {
         }
     }
     setMTime();
+    delete blockList;
     return size;
 }
 
@@ -234,11 +235,12 @@ int Inode::getData(off_t offset, char *data, off_t size) {
     if (!this->open) { return -EBADF; }
     if (offset > this->size / BLOCK_SIZE) return -EINVAL;
 
-    std::vector<uint32_t> *dataBlocks;
+    std::vector<index_t> *dataBlocks = new std::vector<index_t>();
     this->getBlockList(size, offset, dataBlocks);
     char *requiredData = this->collectDataFromBlocks(offset, size, dataBlocks);
     memcpy(data, requiredData, size);
     setATime();
+    delete dataBlocks;
     return 0;
 }
 /// Get the metadata of a file (user & group id, modification times, permissions, ...).
