@@ -45,6 +45,9 @@ class Inode {
 
     int getBlockList(off_t size, off_t offset, std::vector<index_t> *blockList);
     char *collectDataFromBlocks(off_t offset, off_t size, std::vector<uint32_t>* blockList);
+    int removeBlocks(index_t blockNo);
+    int addBlocks(index_t blockNo);
+    index_t getBlockAmount(off_t bytes);
 public:
     Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
@@ -70,7 +73,7 @@ public:
     int getData(off_t offset, char *data, off_t size);
     int getMetadata(struct stat *statbuf);
 
-    size_t getBlock(int);
+    int getBlock(index_t blockIndex, index_t* realBlockAddr);
     int setBlockPointer(int, index_t);
 };
 

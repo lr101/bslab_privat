@@ -257,43 +257,41 @@ int Inode::getMetadata(struct stat *statbuf) {
 
 int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockList) {
     if (size < 0 || size + offset > this->size) return -EINVAL;
-    index_t startBlockIndex = offset / BLOCK_SIZE;
-    index_t endBlockIndex = (size + offset) / BLOCK_SIZE;
+    index_t startBlockIndex = getBlockAmount(offset);
+    index_t endBlockIndex = getBlockAmount(size + offset);
     int ret = 0;
 
     for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
-        int currentBlockIndex = i;
-
-        if (currentBlockIndex < DIR_BLOCK) {
-
-            blockList->push_back(this->block[currentBlockIndex]);
-
-        } else if ((currentBlockIndex -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
-
-            char *buffer = new char[BLOCK_SIZE];
-            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
-            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
-            delete[] buffer;
-
-        } else if ((currentBlockIndex -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
-
-            char *buffer = new char[BLOCK_SIZE];
-            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
-            ret += s_block->getBlockDevice()->read(*(index_t *) (buffer[currentBlockIndex >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
-            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
-            delete[] buffer;
-
-        } else {
-            ret = -EINVAL;
-        }
+        index_t* realBlockAddr = new index_t;
+        ret += getBlock(i, realBlockAddr);
+        blockList->push_back(*realBlockAddr);
+        delete realBlockAddr;
     }
 
     return ret;
 }
 
-size_t Inode::getBlock(int index) {
-    if (index >= 0 && index < N_BLOCKS) return -EINVAL;
-    return this->block[index];
+int Inode::getBlock(index_t blockIndex, index_t* realBlockAddr) {
+    int ret = 0;
+    if (blockIndex < 0) {
+        ret = -EINVAL;
+    } else if (blockIndex < DIR_BLOCK) {
+        *realBlockAddr = this->block[blockIndex];
+    } else if ((blockIndex -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
+        char *buffer = new char[BLOCK_SIZE];
+        ret += s_block->getBlockDevice()->read(this->block[(blockIndex >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
+        *realBlockAddr = *(index_t *) (buffer[blockIndex & BLOCK_PTR_BIT_MASK]);
+        delete[] buffer;
+    } else if ((blockIndex -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
+        char *buffer = new char[BLOCK_SIZE];
+        ret += s_block->getBlockDevice()->read(this->block[(blockIndex >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
+        ret += s_block->getBlockDevice()->read(*(index_t *) (buffer[blockIndex >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
+        *realBlockAddr = *(index_t *) (buffer[blockIndex & BLOCK_PTR_BIT_MASK]);
+        delete[] buffer;
+    } else {
+        ret = -EINVAL;
+    }
+    return ret;
 }
 
 int Inode::setBlockPointer(int index, index_t blockNo) {
