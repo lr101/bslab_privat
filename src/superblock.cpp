@@ -81,6 +81,12 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip, BlockDevice* blockDe
     return 0;
 }
 
+int Superblock::addDBlock(index_t *blockIndex) {
+    index_t freeDBlock = getFreeDataBlockNo();
+    *blockIndex = freeDBlock + getDataIndex();
+    return toggleDMapIndex(freeDBlock);
+}
+
 int Superblock::removeDBlock(index_t blockIndex) {
     if (blockIndex < getDataIndex()) return -EINVAL;
     int ret = 0;
@@ -93,83 +99,6 @@ int Superblock::removeDBlock(index_t blockIndex) {
         ret = -EINVAL;  //data block isn't used yet
     }
     blockDevice->write(getIMapIndex(), buf);
-    return ret;
-}
-
-
-int Superblock::addBlocks(Inode* inode, off_t numNewBlocks) {
-    off_t inodeSize;
-    int ret = inode->getSize(&inodeSize);
-    index_t startBlockIndex = inodeSize / BLOCK_SIZE + 1; //TODO dont know if +1 is correct here
-    index_t endBlockIndex = startBlockIndex + numNewBlocks;
-    index_t indirectAddress = -1;
-
-    for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
-        if (i < DIR_BLOCK) {
-            ret += setInodeDataPointer(inode, i);
-
-        } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {
-
-            index_t relativeIndex = i - DIR_BLOCK;
-            index_t indexInodePointer = (relativeIndex >> BLOCK_PTR_BITS) + DIR_BLOCK;
-
-            if (relativeIndex % N_BLOCK_PTR == 0) ret += setInodeDataPointer(inode, indexInodePointer);
-
-            (void) setIndirectPointer(inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS);
-
-        } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR, 2)) {
-
-            index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
-            index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
-            index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK; //TODO copied from Daniel no clue if it works
-
-            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR))  ret += setInodeDataPointer(inode, indexInodePointer);
-            if (relativeIndex % N_BLOCK_PTR) indirectAddress = setIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
-
-            (void)setIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS);
-
-        } else {
-            ret = -EINVAL;
-        }
-    }
-    return ret;
-}
-
-int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks) {
-    off_t inodeSize;
-    int ret = inode->getSize(&inodeSize);
-    index_t endBlockIndex = inodeSize / BLOCK_SIZE;
-    index_t startBlockIndex = endBlockIndex - numRmvBlocks;
-    index_t indirectAddress = -1;
-
-    for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
-        if (i < DIR_BLOCK) {
-            ret += toggleDMapIndex(inode->getBlock(i) - this->data_index);
-
-        } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {
-
-            index_t relativeIndex = i - DIR_BLOCK;
-            index_t indexInodePointer = (relativeIndex >> BLOCK_PTR_BITS) + DIR_BLOCK;
-
-            if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(inode->getBlock(indexInodePointer) - this->data_index);
-
-            ret += toggleDMapIndex(getIndirectPointer(inode->getBlock(indexInodePointer) - this->data_index, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS));
-
-        } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR,2)) {
-            index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
-            index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
-            index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK; //TODO copied from Daniel no clue if it works
-            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR))  ret += toggleDMapIndex(inode->getBlock(i) - this->data_index);
-            if (relativeIndex % N_BLOCK_PTR) {
-                indirectAddress = getIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
-                ret += toggleDMapIndex(indirectAddress - this->data_index);
-            }
-            ret += toggleDMapIndex(getIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS));
-
-        } else {
-            ret = -EINVAL;
-        }
-    }
     return ret;
 }
 

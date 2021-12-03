@@ -54,7 +54,7 @@ public:
 
     int loadINodes(BlockDevice*, struct InodePointer*);
 
-    int addDBlock(index_t *blockIndex); //TODO create a new data block and return addr  to blockIndex
+    int addDBlock(index_t *blockIndex);
     int removeDBlock(index_t blockIndex);
 
     int toggleDMapIndex(index_t );
