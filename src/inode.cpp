@@ -14,7 +14,8 @@ Inode::Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t
     int nameLength = std::strlen(name) + 1;
     if (nameLength > NAME_LENGTH) throw std::system_error(EINVAL, std::generic_category());
     std::memcpy(this->name, name, nameLength);
-    //setSize(0);
+    this->size = 0;
+    setSize(0);
     this->uid = uid;
     this->gid = gid;
     this->mode = mode;
@@ -47,7 +48,7 @@ int Inode::setSize(off_t size) {
     if (this->size > size) {
          off_t numRmvBlocks = (this->size - size) / BLOCK_SIZE;
          this->s_block->rmBlocks(this, numRmvBlocks);
-    } else {
+    } else if (this->size < size){
         off_t numNewBlocks = (size - this->size) / BLOCK_SIZE;
         this->s_block->addBlocks(this, numNewBlocks);
     }

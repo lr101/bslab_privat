@@ -14,6 +14,7 @@
 #define SUPERBLOCK_SIZE 1
 #define D_MAP_INDEX 1
 #define BYTES_PER_ADDRESS sizeof(index_t)
+#define BYTE_BITS 3 //3 bits to address 0 to 7
 
 class Inode;
 class BlockDevice;
@@ -70,7 +71,7 @@ public:
     int setInodeDataPointer(Inode*, int pointerIndex);
 
     int getFreeInodeIndex();
-    int flipBitInNode (int index, bool* buf);
+    int flipBitInBuf (int index, char* buf, int);
 };
 
 #endif /* superblock_h */
