@@ -203,22 +203,25 @@ int Inode::write(off_t size, const char* data, off_t offset) {
     if (size + offset > this->size) {
         setSize(size + offset);
     }
-    std::vector<index_t> *blockList;
-    int ret = getBlockList(size, offset, blockList);
+    std::vector<index_t> blockList;
+    int ret = getBlockList(size, offset, &blockList);
     if (ret < 0) return ret;
     int growingOffset = 0;
-    for (auto &tempBlock : *blockList) {
-        char* buffer = new char[BLOCK_SIZE];
-        this->s_block->getBlockDevice()->read(tempBlock, buffer);
-        if (tempBlock == *blockList->begin()) {
-            std::memcpy(buffer, data, BLOCK_SIZE - (offset & BLOCK_PTR_BIT_MASK));
-            growingOffset += BLOCK_SIZE - (offset & BLOCK_PTR_BIT_MASK);
-        } else if (tempBlock == *blockList->end()) {
-            std::memcpy(buffer, data + growingOffset, size + offset & BLOCK_PTR_BIT_MASK);
+    offset = offset % BLOCK_SIZE;
+
+    for (const auto& tempBlock : blockList) {
+        char buf [BLOCK_SIZE] = {};
+        if (tempBlock == blockList.front()) {
+            this->s_block->getBlockDevice()->read(tempBlock, buf);
+            std::memcpy(&(buf[offset]), data, BLOCK_SIZE - offset);
+            growingOffset += BLOCK_SIZE - offset;
+        } else if (tempBlock == blockList.back()) {
+            std::memcpy(buf, data + growingOffset, size - growingOffset);
         } else {
-            std::memcpy(buffer, data + growingOffset, BLOCK_SIZE);
+            std::memcpy(buf, data + growingOffset, BLOCK_SIZE);
             growingOffset += BLOCK_SIZE;
         }
+        this->s_block->getBlockDevice()->write(tempBlock, buf);
     }
     setMTime();
     return size;
@@ -267,19 +270,14 @@ int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockLis
             blockList->push_back(this->block[currentBlockIndex]);
 
         } else if ((currentBlockIndex -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
-
-            char *buffer = new char[BLOCK_SIZE];
-            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS) + DIR_BLOCK], buffer);
-            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
-            delete[] buffer;
+            index_t directP = this->s_block->getIndirectPointer(this->block[(currentBlockIndex >> BLOCK_PTR_BITS) + DIR_BLOCK], currentBlockIndex % N_BLOCK_PTR);
+            blockList->push_back(directP);
 
         } else if ((currentBlockIndex -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
 
-            char *buffer = new char[BLOCK_SIZE];
-            ret += s_block->getBlockDevice()->read(this->block[(currentBlockIndex >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buffer);
-            ret += s_block->getBlockDevice()->read(*(index_t *) (buffer[currentBlockIndex >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK]), buffer);
-            blockList->push_back(*(index_t *) (buffer[currentBlockIndex & BLOCK_PTR_BIT_MASK]));
-            delete[] buffer;
+            index_t indirectP = this->s_block->getIndirectPointer(this->block[(currentBlockIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK], currentBlockIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK);
+            index_t directP =   this->s_block->getIndirectPointer(indirectP, (currentBlockIndex & BLOCK_PTR_BIT_MASK));
+            blockList->push_back(directP);
 
         } else {
             ret = -EINVAL;
@@ -290,12 +288,12 @@ int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockLis
 }
 
 size_t Inode::getBlock(int index) {
-    if (index >= 0 && index < N_BLOCKS) return -EINVAL;
+    if (index < 0 && index >= N_BLOCKS) return -EINVAL;
     return this->block[index];
 }
 
 int Inode::setBlockPointer(int index, index_t blockNo) {
-    if (index >= 0 && index < N_BLOCKS) return -EINVAL;
+    if (index < 0 && index >= N_BLOCKS) return -EINVAL;
     this->block[index] = blockNo;
     return 0;
 }
