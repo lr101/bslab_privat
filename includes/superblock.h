@@ -58,7 +58,7 @@ public:
 
     int addBlocks(Inode* , off_t, index_t );
 
-    int rmBlocks(Inode*, off_t);
+    int rmBlocks(Inode*, off_t, index_t);
 
     int toggleDMapIndex(index_t );
 

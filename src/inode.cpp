@@ -46,8 +46,8 @@ int Inode::setName(const char *name) {
 int Inode::setSize(off_t size) {
     if (size < 0) return -EINVAL;
     if (this->size > size) {
-         off_t numRmvBlocks = (this->size - size) / BLOCK_SIZE;
-         this->s_block->rmBlocks(this, numRmvBlocks);
+         off_t numRmvBlocks = (((this->size - size) / 4096) + 1) << BYTE_BITS;
+         this->s_block->rmBlocks(this, numRmvBlocks, ((this->size  / 4096) + 1) << BYTE_BITS);
     } else if (this->size < size){
         off_t numNewBlocks = (((size - this->size) / 4096) + 1) << BYTE_BITS;
         this->s_block->addBlocks(this, numNewBlocks, this->size / BLOCK_SIZE);
@@ -236,7 +236,7 @@ int Inode::getData(off_t offset, char *data, off_t size) {
     if (offset > this->size / BLOCK_SIZE) return -EINVAL;
 
     std::vector<index_t> blockList;
-    int ret = getBlockList(size, offset, &blockList);
+    int ret = getBlockList((size < this->size ? size : this->size), offset, &blockList);
     if (ret < 0) return ret;
     int growingOffset = 0;
     offset = offset % BLOCK_SIZE;

@@ -11,6 +11,7 @@
 #include <system_error>
 #include <sys/stat.h>
 #include <vector>
+#include <algorithm>
 
 #include "superblock.h"
 #include "myfs-structs.h"

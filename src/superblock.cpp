@@ -105,7 +105,7 @@ int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIn
 
             index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
             index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
-            index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK; //TODO copied from Daniel no clue if it works
+            index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK;
 
             if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR) == 0)  ret += setInodeDataPointer(inode, indexInodePointer);
             if (relativeIndex % N_BLOCK_PTR == 0) indirectAddress = setIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
@@ -119,35 +119,33 @@ int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIn
     return ret;
 }
 
-int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks) {
-    off_t inodeSize;
-    int ret = inode->getSize(&inodeSize);
-    index_t endBlockIndex = inodeSize / BLOCK_SIZE;
+int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks, index_t endBlockIndex) {
     index_t startBlockIndex = endBlockIndex - numRmvBlocks;
     index_t indirectAddress = -1;
+    int ret = 0;
 
-    for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
+    for (index_t i = startBlockIndex; i < endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
-            ret += toggleDMapIndex(inode->getBlock(i) - this->data_index);
+            ret += toggleDMapIndex(inode->getBlock(i));
 
         } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {
 
             index_t relativeIndex = i - DIR_BLOCK;
             index_t indexInodePointer = (relativeIndex >> BLOCK_PTR_BITS) + DIR_BLOCK;
 
-            if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(inode->getBlock(indexInodePointer) - this->data_index);
-            ret += toggleDMapIndex(getIndirectPointer(inode->getBlock(indexInodePointer) - this->data_index, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS));
+            if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(inode->getBlock(indexInodePointer));
+            ret += toggleDMapIndex(getIndirectPointer(inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR)));
 
         } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR,2)) {
             index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
             index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
-            index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK; //TODO copied from Daniel no clue if it works
-            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR) == 0)  ret += toggleDMapIndex(inode->getBlock(i) - this->data_index);
+            index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK;
+            if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR) == 0)  ret += toggleDMapIndex(inode->getBlock(indexInodePointer));
             if (relativeIndex % N_BLOCK_PTR == 0) {
                 indirectAddress = getIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
-                ret += toggleDMapIndex(indirectAddress - this->data_index);
+                ret += toggleDMapIndex(indirectAddress);
             }
-            ret += toggleDMapIndex(getIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR) * BYTES_PER_ADDRESS));
+            ret += toggleDMapIndex(getIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR)));
 
         } else {
             ret = -EINVAL;
@@ -184,10 +182,11 @@ index_t Superblock::getIndirectPointer( index_t dataBlockNo, off_t offset) {
 /// \param blockDevice blockDevice pointer
 /// \return error code
 int Superblock::toggleDMapIndex(index_t dataBlockNo) {
+    dataBlockNo -= this->data_index;
     int dMapIndex = dataBlockNo / (BYTE_SIZE * BLOCK_SIZE) + D_MAP_INDEX;
     int dMapByteIndex = dataBlockNo % (BYTE_SIZE * BLOCK_SIZE);
     char buf [BLOCK_SIZE] = {};
-    (void) blockDevice->read(dMapIndex, (char*) buf);
+    (void) blockDevice->read(dMapIndex, buf);
     flipBitInBuf(dMapByteIndex, buf, dMapIndex);
     return 0;
 }
