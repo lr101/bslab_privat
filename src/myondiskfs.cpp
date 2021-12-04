@@ -103,8 +103,12 @@ int MyOnDiskFS::fuseUnlink(const char *path) {
     auto itPath = this->files.find(path);
 
     if (itPath != this->files.end()) {
+        char buf[BLOCK_SIZE] = {};
+        this->files[path]->inode->setSize(0);
+        this->blockDevice->read(this->s_block->getIMapIndex(), buf);
+        this->s_block->flipBitInBuf(this->files[path]->blockNo - this->s_block->getINodeIndex(), buf, this->s_block->getIMapIndex());
         this->files.erase(itPath);
-        // TODO: free inode's block
+
         RETURN(0);
     } else {
         RETURN(-ENOENT);
