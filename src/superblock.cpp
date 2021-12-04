@@ -59,6 +59,7 @@ int Superblock::loadINodes(std::vector<InodePointer*>* iNodes) {
         if (((buf[indexBit >> BYTE_BITS] >> (indexBit % BYTE_SIZE)) & 1 ) == 1) {
             auto ip = new struct InodePointer();
             ret += this->getINode(this->getINodeIndex() + indexBit, ip);
+            ip->inode->setSuperblock(this);
             iNodes->push_back(ip);
         }
     }
@@ -83,14 +84,12 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip) {
 }
 
 
-int Superblock::addBlocks(Inode* inode, off_t numNewBlocks) {
-    off_t inodeSize;
-    int ret = inode->getSize(&inodeSize);
-    index_t startBlockIndex = inodeSize / BLOCK_SIZE; //TODO dont know if +1 is correct here
+int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIndex) {
     index_t endBlockIndex = startBlockIndex + numNewBlocks;
     index_t indirectAddress = -1;
+    int ret = 0;
 
-    for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
+    for (index_t i = startBlockIndex; i < endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
             ret += setInodeDataPointer(inode, i);
         } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {

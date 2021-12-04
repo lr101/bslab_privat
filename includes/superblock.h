@@ -56,7 +56,7 @@ public:
 
     int loadINodes(std::vector<InodePointer*>* iNodes);
 
-    int addBlocks(Inode* , off_t );
+    int addBlocks(Inode* , off_t, index_t );
 
     int rmBlocks(Inode*, off_t);
 

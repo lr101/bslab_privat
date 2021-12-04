@@ -49,8 +49,8 @@ int Inode::setSize(off_t size) {
          off_t numRmvBlocks = (this->size - size) / BLOCK_SIZE;
          this->s_block->rmBlocks(this, numRmvBlocks);
     } else if (this->size < size){
-        off_t numNewBlocks = (size - this->size) / BLOCK_SIZE;
-        this->s_block->addBlocks(this, numNewBlocks);
+        off_t numNewBlocks = (((size - this->size) / 4096) + 1) << BYTE_BITS;
+        this->s_block->addBlocks(this, numNewBlocks, this->size / BLOCK_SIZE);
     }
     this->size = size;
     setMTime();
@@ -235,12 +235,29 @@ int Inode::getData(off_t offset, char *data, off_t size) {
     if (!this->open) { return -EBADF; }
     if (offset > this->size / BLOCK_SIZE) return -EINVAL;
 
-    std::vector<uint32_t> *dataBlocks;
-    this->getBlockList(size, offset, dataBlocks);
-    char *requiredData = this->collectDataFromBlocks(offset, size, dataBlocks);
-    memcpy(data, requiredData, size);
+    std::vector<index_t> blockList;
+    int ret = getBlockList(size, offset, &blockList);
+    if (ret < 0) return ret;
+    int growingOffset = 0;
+    offset = offset % BLOCK_SIZE;
+
+    for (const auto& tempBlock : blockList) {
+        char buf [BLOCK_SIZE] = {};
+        this->s_block->getBlockDevice()->read(tempBlock, buf);
+
+        if (tempBlock == blockList.front()) {
+            std::memcpy(data,&(buf[offset]), BLOCK_SIZE - offset);
+            growingOffset += BLOCK_SIZE - offset;
+        } else if (tempBlock == blockList.back()) {
+            std::memcpy(&data[growingOffset], buf, size - growingOffset);
+        } else {
+            std::memcpy( &data[growingOffset], buf, BLOCK_SIZE);
+            growingOffset += BLOCK_SIZE;
+        }
+    }
+
     setATime();
-    return 0;
+    return size;
 }
 /// Get the metadata of a file (user & group id, modification times, permissions, ...).
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
@@ -257,12 +274,12 @@ int Inode::getMetadata(struct stat *statbuf) {
 }
 
 int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockList) {
-    if (size < 0 || size + offset > this->size) return -EINVAL;
+    if (size < 0 || size + offset > ((this->size >> 12) + 1) << 12) return -EINVAL;
     index_t startBlockIndex = offset / BLOCK_SIZE;
-    index_t endBlockIndex = (size + offset) / BLOCK_SIZE;
+    index_t endBlockIndex = startBlockIndex + ceil(size * 1.0 / BLOCK_SIZE);
     int ret = 0;
 
-    for (index_t i = startBlockIndex; i <= endBlockIndex; i++) {
+    for (index_t i = startBlockIndex; i < endBlockIndex; i++) {
         int currentBlockIndex = i;
 
         if (currentBlockIndex < DIR_BLOCK) {
@@ -298,28 +315,7 @@ int Inode::setBlockPointer(int index, index_t blockNo) {
     return 0;
 }
 
-char *Inode::collectDataFromBlocks(off_t offset, off_t size, std::vector<uint32_t>* dataBlocks) {
-    uint32_t startBlockIndex = offset / BLOCK_SIZE;
-    uint32_t endBlockIndex = (size + offset) / BLOCK_SIZE;
-    uint32_t numberOfBlocks = endBlockIndex - startBlockIndex;
-    char *requiredData = new char[size-offset];
-    for (int i = 0; i < numberOfBlocks; i++) {
-        char *buffer = new char[BLOCK_SIZE];
-        s_block->getBlockDevice()->read(dataBlocks->at(i), buffer);
-
-        if (i == 0) {
-            uint32_t startBlockByte = offset % BLOCK_SIZE;
-            for (int bufferIndex = startBlockByte; bufferIndex < size || bufferIndex < BLOCK_SIZE; i++) {
-                *requiredData += buffer[bufferIndex];
-            }
-        } else if (i == numberOfBlocks - 1) {
-            uint32_t endBlockByte = (size + offset) % BLOCK_SIZE;
-            for (int bufferIndex = 0; bufferIndex < endBlockByte; i++) {
-                *requiredData += buffer[bufferIndex];
-            }
-        } else { *requiredData += *buffer; }
-
-        delete[] buffer;
-    }
-    return requiredData;
+int Inode::setSuperblock(Superblock* s_block) {
+    this->s_block = s_block;
+    return 0;
 }

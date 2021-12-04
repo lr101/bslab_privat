@@ -15,7 +15,7 @@
 #include "superblock.h"
 #include "myfs-structs.h"
 
-#define DIR_BLOCK 4
+#define DIR_BLOCK 0
 #define IND_BLOCK 4
 #define DIND_BLOCK 2
 #define N_BLOCKS (DIR_BLOCK + IND_BLOCK + DIND_BLOCK)
@@ -45,7 +45,6 @@ class Inode {
     int setCTime();
 
     int getBlockList(off_t size, off_t offset, std::vector<index_t> *blockList);
-    char *collectDataFromBlocks(off_t offset, off_t size, std::vector<uint32_t>* blockList);
 public:
     Inode(Superblock* s_block, const char *name, uid_t uid, gid_t gid, mode_t mode);
     ~Inode();
@@ -57,6 +56,7 @@ public:
     int setMode(mode_t mode);
     int setOpen();
     int setClose();
+    int setSuperblock(Superblock*);
     int write(off_t size, const char *data, off_t offset);
 
     int getName(char *name);

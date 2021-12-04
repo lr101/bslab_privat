@@ -40,7 +40,7 @@ MyOnDiskFS::~MyOnDiskFS() {
     // free block device object
     delete this->blockDevice;
     for (auto const& item : files) {
-        delete item.second;
+        delete item.second->inode;
     }
 
 }
@@ -483,8 +483,9 @@ void MyOnDiskFS::fuseDestroy() {
     LOGM();
     LOG("Delete files from file map");
     delete this->s_block;
+    delete this->blockDevice;
     for (auto const& item : files) {
-        delete item.second;
+        delete item.second->inode;
     }
 }
 
