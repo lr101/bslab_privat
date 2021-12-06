@@ -14,6 +14,7 @@
 #define SUPERBLOCK_SIZE 1
 #define D_MAP_INDEX 1
 #define BYTES_PER_ADDRESS sizeof(index_t)
+#define BYTE_BITS 3
 
 class Inode;
 class BlockDevice;
@@ -38,7 +39,7 @@ private:
     static size_t calImapSize(size_t i_node_num);
     static size_t calDmapSize (size_t size);
     int getINode(index_t, struct InodePointer*, BlockDevice* blockDevice);
-
+    int flipBitInBuf(int index, char* buf, int mapIndex);
 
 public:
     Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice);

@@ -136,12 +136,12 @@ index_t Superblock::getIndirectPointer( index_t dataBlockNo, off_t byteOffset) {
 /// \param blockDevice blockDevice pointer
 /// \return error code
 int Superblock::toggleDMapIndex(index_t dataBlockNo) {
+    dataBlockNo -= this->data_index;
     int dMapIndex = dataBlockNo / (BYTE_SIZE * BLOCK_SIZE) + D_MAP_INDEX;
-    int dMapByteIndex = (BYTE_SIZE * BLOCK_SIZE) - dataBlockNo % N_BLOCK_PTR;
+    int dMapByteIndex = dataBlockNo % (BYTE_SIZE * BLOCK_SIZE);
     char buf [BLOCK_SIZE] = {};
     (void) blockDevice->read(dMapIndex, buf);
-    *buf ^=  1UL << dMapByteIndex;
-    (void) blockDevice->write(dMapIndex, buf);
+    flipBitInBuf(dMapByteIndex, buf, dMapIndex);
     return 0;
 }
 
@@ -150,12 +150,18 @@ index_t Superblock::getFreeDataBlockNo() {
     for (int dMapIndex = D_MAP_INDEX; dMapIndex < this->i_map_index; dMapIndex++) {
         (void) blockDevice->read(dMapIndex, buf);
         for (int i = 0; i < BLOCK_SIZE * BYTE_SIZE; i++) {
-            if (((*buf >> i) & 1) == 0) {
-                return dMapIndex * BLOCK_SIZE * BYTE_SIZE + i;
+            if (((buf[i >> BYTE_BITS] >> (i % BYTE_SIZE)) & 1 ) == 0) {
+                flipBitInBuf(i, buf, dMapIndex);
+                return i + (D_MAP_INDEX - 1) * BYTE_SIZE * BLOCK_SIZE;
             }
         }
     }
     return -1;
+}
+
+int Superblock::flipBitInBuf(int index, char* buf, int mapIndex) {
+    buf[index >> BYTE_BITS] ^= 1 <<  (index % BYTE_SIZE);
+    return this->blockDevice->write(mapIndex,  buf);
 }
 
 
