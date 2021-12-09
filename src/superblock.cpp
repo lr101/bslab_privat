@@ -90,6 +90,7 @@ int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIn
     int ret = 0;
 
     for (index_t i = startBlockIndex; i < endBlockIndex; i++) {
+        if (i + this->data_index >= NUM_FS_BLOCKS) {return -ENOMEM;}
         if (i < DIR_BLOCK) {
             ret += setInodeDataPointer(inode, i);
         } else if (i - DIR_BLOCK < N_IND_BLOCKS_PTR) {

@@ -297,7 +297,7 @@ int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockLis
 
         } else if ((currentBlockIndex -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
 
-            index_t indirectP = this->s_block->getIndirectPointer(this->block[(currentBlockIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK], currentBlockIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK);
+            index_t indirectP = this->s_block->getIndirectPointer(this->block[(currentBlockIndex >> (BLOCK_PTR_BITS*2)) + DIR_BLOCK + IND_BLOCK], currentBlockIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK);
             index_t directP =   this->s_block->getIndirectPointer(indirectP, (currentBlockIndex & BLOCK_PTR_BIT_MASK));
             blockList->push_back(directP);
 
