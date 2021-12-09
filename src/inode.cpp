@@ -75,7 +75,7 @@ int Inode::appendBlock() {
         this->size += BLOCK_SIZE;
     } else if ((blockAmount -= DIR_BLOCK) < IND_BLOCK * N_BLOCK_PTR) {
         // Check if the necessary data block in this->block is already in use
-        if (getBlockAmount(this->size) - DIR_BLOCK >> BLOCK_PTR_BITS < blockAmount + 1 >> BLOCK_PTR_BITS || blockAmount == 0) {//TODO if fehlerhaft
+        if ((blockAmount & BLOCK_PTR_BIT_MASK) == 0) {
             // If not, create it
             ret += s_block->addDBlock(&this->block[(blockAmount >> BLOCK_PTR_BITS) + DIR_BLOCK]);
         }
@@ -90,12 +90,12 @@ int Inode::appendBlock() {
         this->size += BLOCK_SIZE;
     } else if ((blockAmount -= IND_BLOCK * N_BLOCK_PTR) < DIND_BLOCK * N_BLOCK_PTR * N_BLOCK_PTR) {
         // Check if the necessary double indirect pointer exists
-        if (getBlockAmount(this->size) - IND_BLOCK * N_BLOCK_PTR - DIR_BLOCK >> BLOCK_PTR_BITS * 2 < blockAmount >> BLOCK_PTR_BITS * 2) {
+        if ((blockAmount >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK) == 0 && (blockAmount & BLOCK_PTR_BIT_MASK) == 0) {
             // If not, create it
             ret += s_block->addDBlock(&this->block[(blockAmount >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK]);
         }
         // Check if the necessary indirect pointer exists
-        if (getBlockAmount(this->size) - IND_BLOCK * N_BLOCK_PTR - DIR_BLOCK >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK < blockAmount >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK) {
+        if ((blockAmount & BLOCK_PTR_BIT_MASK) == 0) {
             char *buf = new char[BLOCK_SIZE];
             // Read block from double indirect pointer
             ret += s_block->getBlockDevice()->read(this->block[(blockAmount >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buf);
@@ -109,11 +109,11 @@ int Inode::appendBlock() {
         // Read block from double indirect pointer
         ret += s_block->getBlockDevice()->read(this->block[(blockAmount >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buf);
         // Read block from indirect pointer
-        ret += s_block->getBlockDevice()->read((index_t) buf[blockAmount >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK], buf);
+        ret += s_block->getBlockDevice()->read((index_t) buf[(blockAmount >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK) * sizeof(index_t)], buf);
         // Write address to new direct pointer
-        ret += s_block->addDBlock((index_t *) &buf[blockAmount & BLOCK_PTR_BIT_MASK]);
+        ret += s_block->addDBlock((index_t *) &buf[(blockAmount & BLOCK_PTR_BIT_MASK) * sizeof(index_t)]);
         // Write new buf to blockdevice
-        ret += s_block->getBlockDevice()->write(this->block[(blockAmount >> BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK)], buf);
+        ret += s_block->getBlockDevice()->write(this->block[(blockAmount >> BLOCK_PTR_BITS * 2) + DIR_BLOCK + IND_BLOCK], buf);
         delete[] buf;
         this->size += BLOCK_SIZE;
     } else {
