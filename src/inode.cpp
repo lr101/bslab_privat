@@ -46,16 +46,21 @@ int Inode::setName(const char *name) {
 int Inode::setSize(off_t size) {
     if (size < 0) return -EINVAL;
     if (this->size > size) {
-         off_t numRmvBlocks = (((this->size - size) / 4096) + 1) << BYTE_BITS;
-         this->s_block->rmBlocks(this, numRmvBlocks, ((this->size  / 4096) + 1) << BYTE_BITS);
+         off_t numRmvBlocks = getBlockAmount(this->size ) - getBlockAmount(size);
+         this->s_block->rmBlocks(this, numRmvBlocks, getBlockAmount(size));
     } else if (this->size < size){
-        off_t numNewBlocks = (((size - this->size) / 4096) + 1) << BYTE_BITS;
-        this->s_block->addBlocks(this, numNewBlocks, this->size / BLOCK_SIZE);
+        off_t numNewBlocks = getBlockAmount(size) - getBlockAmount(this->size);
+        this->s_block->addBlocks(this, numNewBlocks, getBlockAmount(this->size));
     }
     this->size = size;
     setMTime();
     return 0;
 }
+
+index_t Inode::getBlockAmount(off_t bytes) {
+    return (bytes >> 9) + ((bytes % BLOCK_SIZE) != 0 ? 1 : 0); //9 -> 512 = 2^9; 512 - 1 -> 511 = 0x1FF
+}
+
 
 /// Change the user identification.
 /// \param uid [in] New user id.
@@ -213,7 +218,7 @@ int Inode::write(off_t size, const char* data, off_t offset) {
         char buf [BLOCK_SIZE] = {};
         if (tempBlock == blockList.front()) {
             this->s_block->getBlockDevice()->read(tempBlock, buf);
-            std::memcpy(&(buf[offset]), data, BLOCK_SIZE - offset);
+            std::memcpy(&(buf[offset]), data, (size < BLOCK_SIZE - offset ? size :BLOCK_SIZE - offset));
             growingOffset += BLOCK_SIZE - offset;
         } else if (tempBlock == blockList.back()) {
             std::memcpy(buf, data + growingOffset, size - growingOffset);

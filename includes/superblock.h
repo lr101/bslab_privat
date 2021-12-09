@@ -64,7 +64,7 @@ public:
 
     index_t getFreeDataBlockNo();
 
-    index_t setIndirectPointer(index_t, off_t );
+    int setIndirectPointer(index_t, off_t );
 
     index_t getIndirectPointer( index_t, off_t);
 

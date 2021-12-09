@@ -357,7 +357,7 @@ int MyOnDiskFS::fuseRelease(const char *path, struct fuse_file_info *fileInfo) {
 int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld", path, newSize);
-    int ret;
+    int ret = 0;
     if (files.find(path) == files.end()) {ret = -EBADF;}
     if (ret == 0) { ret = files[path]->inode->setSize(newSize); }
     if (ret == 0) { ret = writeInode(files[path]); }
@@ -377,7 +377,7 @@ int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize) {
 int MyOnDiskFS::fuseTruncate(const char *path, off_t newSize, struct fuse_file_info *fileInfo) {
     LOGM();
     LOGF("Attributes: path=%s, newSize=%ld, fileInfo=%s", path, newSize, "Ignored in Part1");
-    int ret;
+    int ret = 0;
     if (files.find(path) == files.end()) { ret =-EBADF; }
     if (ret == 0) { ret = files[path]->inode->setSize(newSize); }
     if (ret == 0) { ret = writeInode(files[path]); }
@@ -506,8 +506,8 @@ void MyOnDiskFS::fuseDestroy() {
     int MyOnDiskFS::writeInode(InodePointer* ip) {
     char buf [BLOCK_SIZE] = {};
     (void) std::memcpy(buf, ip->inode, sizeof(Inode));
-    int ret = this->blockDevice->write(ip->blockNo,buf);
-    return ret;
+    this->blockDevice->write(ip->blockNo,buf);
+    return 0;
 }
 
 

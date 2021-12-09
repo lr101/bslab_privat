@@ -54,7 +54,8 @@ index_t Superblock::getDataIndex() {
 
 int Superblock::loadINodes(std::vector<InodePointer*>* iNodes) {
     char buf [BLOCK_SIZE] = {};
-    int ret = this->blockDevice->read(this->getIMapIndex(), buf);
+    int ret = 0;
+    this->blockDevice->read(this->getIMapIndex(), buf);
     for (int indexBit = 0; indexBit < NUM_DIR_ENTRIES && ret == 0; indexBit++) {
         if (((buf[indexBit >> BYTE_BITS] >> (indexBit % BYTE_SIZE)) & 1 ) == 1) {
             auto ip = new struct InodePointer();
@@ -86,7 +87,6 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip) {
 
 int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIndex) {
     index_t endBlockIndex = startBlockIndex + numNewBlocks;
-    index_t indirectAddress = -1;
     int ret = 0;
 
     for (index_t i = startBlockIndex; i < endBlockIndex; i++) {
@@ -99,31 +99,29 @@ int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIn
 
             if (relativeIndex % N_BLOCK_PTR == 0) ret += setInodeDataPointer(inode, indexInodePointer);
 
-            (void) setIndirectPointer(inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR));
+            ret += setIndirectPointer(inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR));
 
         } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR, 2)) {
 
             index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
-            index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
             index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK;
+            index_t indexInodePointer = (relativeIndex >>  (BLOCK_PTR_BITS * 2)) + DIR_BLOCK + IND_BLOCK;
 
             if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR) == 0)  ret += setInodeDataPointer(inode, indexInodePointer);
-            if (relativeIndex % N_BLOCK_PTR == 0) indirectAddress = setIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
-
-            (void)setIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR));
+            if (relativeIndex % N_BLOCK_PTR == 0) ret += setIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
+            index_t indirectAddress = getIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
+            ret += setIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR));
 
         } else {
-            ret = -EINVAL;
+            ret = -ENOMEM;
         }
     }
     return ret;
 }
 
-int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks, index_t endBlockIndex) {
-    index_t startBlockIndex = endBlockIndex - numRmvBlocks;
-    index_t indirectAddress = -1;
+int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks, index_t startBlockIndex) {
+    index_t endBlockIndex = startBlockIndex + numRmvBlocks;
     int ret = 0;
-
     for (index_t i = startBlockIndex; i < endBlockIndex; i++) {
         if (i < DIR_BLOCK) {
             ret += toggleDMapIndex(inode->getBlock(i));
@@ -132,21 +130,18 @@ int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks, index_t endBlockIndex
 
             index_t relativeIndex = i - DIR_BLOCK;
             index_t indexInodePointer = (relativeIndex >> BLOCK_PTR_BITS) + DIR_BLOCK;
-
             if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(inode->getBlock(indexInodePointer));
             ret += toggleDMapIndex(getIndirectPointer(inode->getBlock(indexInodePointer), (relativeIndex % N_BLOCK_PTR)));
 
         } else if (i - DIR_BLOCK - N_IND_BLOCKS_PTR < DIND_BLOCK * pow(N_BLOCK_PTR,2)) {
             index_t relativeIndex = i - DIR_BLOCK - N_IND_BLOCKS_PTR;
-            index_t indexInodePointer = (relativeIndex >>  BLOCK_PTR_BITS) + DIR_BLOCK + IND_BLOCK;
+            index_t indexInodePointer = (relativeIndex >>  (BLOCK_PTR_BITS * 2)) + DIR_BLOCK + IND_BLOCK;
             index_t indirectPointerIndex = relativeIndex >>  BLOCK_PTR_BITS & BLOCK_PTR_BIT_MASK;
             if (relativeIndex % (N_BLOCK_PTR * N_BLOCK_PTR) == 0)  ret += toggleDMapIndex(inode->getBlock(indexInodePointer));
-            if (relativeIndex % N_BLOCK_PTR == 0) {
-                indirectAddress = getIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
-                ret += toggleDMapIndex(indirectAddress);
-            }
-            ret += toggleDMapIndex(getIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR)));
+            index_t indirectAddress = getIndirectPointer(inode->getBlock(indexInodePointer), indirectPointerIndex);
+            if (relativeIndex % N_BLOCK_PTR == 0) ret += toggleDMapIndex(indirectAddress);
 
+            ret += toggleDMapIndex(getIndirectPointer(indirectAddress, (relativeIndex % N_BLOCK_PTR)));
         } else {
             ret = -EINVAL;
         }
@@ -160,13 +155,15 @@ int Superblock::setInodeDataPointer(Inode* inode, int pointerIndex) {
 }
 
 
-index_t Superblock::setIndirectPointer(index_t dataBlockNo, off_t offset) {
+int Superblock::setIndirectPointer(index_t dataBlockNo, off_t offset) {
     index_t address = this->getFreeDataBlockNo() + this->data_index;
     char buf [BLOCK_SIZE] = {};
-    (void) blockDevice->read(dataBlockNo, buf);
-    buf[offset * BYTES_PER_ADDRESS] |= address;
-    (void) blockDevice->write(dataBlockNo, buf);
-    return address;
+    blockDevice->read(dataBlockNo, buf);
+    for (int i = 0; i < BYTES_PER_ADDRESS; i++) {
+        buf[offset * BYTES_PER_ADDRESS + i] = (address >> (BYTE_SIZE * i)) & 0xff;
+    }
+
+    return blockDevice->write(dataBlockNo, buf);;
 }
 
 index_t Superblock::getIndirectPointer( index_t dataBlockNo, off_t offset) {
@@ -187,8 +184,7 @@ int Superblock::toggleDMapIndex(index_t dataBlockNo) {
     int dMapByteIndex = dataBlockNo % (BYTE_SIZE * BLOCK_SIZE);
     char buf [BLOCK_SIZE] = {};
     (void) blockDevice->read(dMapIndex, buf);
-    flipBitInBuf(dMapByteIndex, buf, dMapIndex);
-    return 0;
+    return flipBitInBuf(dMapByteIndex, buf, dMapIndex);;
 }
 index_t Superblock::getFreeDataBlockNo() {
     char buf [BLOCK_SIZE] = {};
@@ -197,7 +193,7 @@ index_t Superblock::getFreeDataBlockNo() {
         for (int i = 0; i < BLOCK_SIZE * BYTE_SIZE; i++) {
             if (((buf[i >> BYTE_BITS] >> (i % BYTE_SIZE)) & 1 ) == 0) {
                 flipBitInBuf(i, buf, dMapIndex);
-                return i + (D_MAP_INDEX - 1) * BYTE_SIZE * BLOCK_SIZE;
+                return i + (dMapIndex - 1) * BYTE_SIZE * BLOCK_SIZE;
             }
         }
     }
