@@ -18,7 +18,7 @@
 #define IND_BLOCK 4
 #define DIND_BLOCK 2
 #define N_BLOCKS (DIR_BLOCK + IND_BLOCK + DIND_BLOCK)
-#define N_BLOCK_PTR (BLOCK_SIZE / sizeof(uint32_t))
+#define N_BLOCK_PTR (BLOCK_SIZE / sizeof(index_t))
 #define BLOCK_PTR_BITS 7    //7 bits to address 0 to 12
 #define BLOCK_PTR_BIT_MASK (N_BLOCK_PTR - 1)
 #define N_IND_BLOCKS_PTR (IND_BLOCK * N_BLOCK_PTR)
