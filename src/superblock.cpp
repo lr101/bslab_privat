@@ -84,7 +84,7 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip, BlockDevice* blockDe
 int Superblock::addDBlock(index_t *blockIndex) {
     index_t freeDBlock = getFreeDataBlockNo();
     *blockIndex = freeDBlock + getDataIndex();
-    return toggleDMapIndex(freeDBlock);
+    return 0;
 }
 
 int Superblock::removeDBlock(index_t blockIndex) {
