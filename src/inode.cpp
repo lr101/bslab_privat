@@ -238,7 +238,6 @@ int Inode::write(off_t size, const char* data, off_t offset) {
 /// \returns 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
 int Inode::getData(off_t offset, char *data, off_t size) {
     if (!this->open) { return -EBADF; }
-    if (offset > this->size / BLOCK_SIZE) return -EINVAL;
 
     std::vector<index_t> blockList;
     int ret = getBlockList((size < this->size ? size : this->size), offset, &blockList);
