@@ -17,30 +17,46 @@ Superblock::Superblock(size_t size, size_t i_node_num, BlockDevice* blockDevice)
 
 Superblock::~Superblock() = default;
 
+/// calculates the iMap size in revelation to the number of inodes
+/// \param i_node_num [in] number of Inodes
+/// \return size of iMap
 size_t Superblock::calImapSize (size_t i_node_num) {
     return static_cast<size_t>(ceil(static_cast<double>(i_node_num) / static_cast<double>((BYTE_SIZE * BLOCK_SIZE))));
 }
 
+/// calculates the dMap size in revelation to the size of dMap and data together
+/// \param size [in] dMap + data size
+/// \return size of dMap
 size_t Superblock::calDmapSize (size_t size) {
     return static_cast<size_t>(ceil(static_cast<double>(size) / static_cast<double>((BYTE_SIZE * BLOCK_SIZE + 1))));    //Bo ja tak powiedzialem. Kurwa.
 }
 
+/// Gets size of the complete blockDevice in the number of blocks
+/// \return size
 size_t Superblock::getSize() {
     return this->size;
 }
 
+/// Gets the first block number of the dMap
+/// \return dMap block number
 index_t Superblock::getDMapIndex() {
     return D_MAP_INDEX;
 }
 
+/// Gets the first block number of the iMap
+/// \return iMap block number
 index_t Superblock::getIMapIndex() {
     return this->i_map_index;
 }
 
+/// Gets the first block number of the Inode section
+/// \return Inode block number
 index_t Superblock::getINodeIndex() {
     return this->i_node_index;
 }
 
+/// Gets the first block number of the data section
+/// \return data block number
 index_t Superblock::getDataIndex() {
     return this->data_index;
 }
@@ -49,7 +65,7 @@ index_t Superblock::getDataIndex() {
 ///
 /// This function is called when the file system is mounted and a container does already exits.
 /// All Inodes from the container are loaded into the inmemory file system
-/// \param
+/// \param iNodes [out] vector to return the loaded InodePointer 
 /// \return 0 on success -ERRNO on failure.
 
 int Superblock::loadINodes(std::vector<InodePointer*>* iNodes) {
@@ -67,9 +83,9 @@ int Superblock::loadINodes(std::vector<InodePointer*>* iNodes) {
     return ret;
 }
 
-/// Load read INode from a given block into an INodePointer
+/// Load INode from a given block into an INodePointer
 ///
-/// This function reads an INode from a given blockNo into an INodePointer from the container
+/// This function reads an INode from a given block number into an INodePointer from the container
 ///
 /// \param blockNo [in] block number in BLockDevice
 /// \param ip [out] struct InodePointer filled with the blockNo, Inode Object, BlockDevice Pointer
@@ -84,7 +100,11 @@ int Superblock::getINode(index_t blockNo, InodePointer* ip) {
     return 0;
 }
 
-
+/// Adds a given amount of blocks with a given offset in the data section to an Inode
+/// by setting dMap bits to 1 and writing addresses in tree structure
+/// \param inode [in] Inode where the blocks are added to
+/// \param numNewBlocks [in] number of blocks added
+/// \param startBlockIndex [in] offset. First index of block to be added
 int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIndex) {
     index_t endBlockIndex = startBlockIndex + numNewBlocks;
     int ret = 0;
@@ -120,6 +140,11 @@ int Superblock::addBlocks(Inode* inode, off_t numNewBlocks, index_t startBlockIn
     return ret;
 }
 
+/// removes a given number of blocks with a given offset from a given Inode
+/// by setting dMap bits to zero
+/// \param inode [in] Inode where blocks are removed
+/// \param numRmvBlocks [in] number of blocks to be removes
+/// \param startBlockIndex [in] offset. First block to be removed
 int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks, index_t startBlockIndex) {
     index_t endBlockIndex = startBlockIndex + numRmvBlocks;
     int ret = 0;
@@ -149,13 +174,19 @@ int Superblock::rmBlocks(Inode* inode, off_t numRmvBlocks, index_t startBlockInd
     }
     return ret;
 }
-
+/// Sets a block pointer in a given Inode to a free data block address
+/// \param inode [in] Inode where data block is to be added
+/// \param pointerIndex [in] index of block pointer in inode
+/// \return 0 on success
 int Superblock::setInodeDataPointer(Inode* inode, int pointerIndex) {
     index_t freeDataBlock = this->getFreeDataBlockNo();
     return inode->setBlockPointer(pointerIndex, freeDataBlock + this->data_index);
 }
 
-
+/// Adds a new block to a given indirect pointer block
+/// \param dataBlockNo [in] indirect pointer address
+/// \param offset [in] offset in the indirect pointer block (0 - 127)
+/// \return 0 on success, -ERRNO on failure
 int Superblock::setIndirectPointer(index_t dataBlockNo, off_t offset) {
     index_t address = this->getFreeDataBlockNo() + this->data_index;
     char buf [BLOCK_SIZE] = {};
@@ -187,6 +218,9 @@ int Superblock::toggleDMapIndex(index_t dataBlockNo) {
     (void) blockDevice->read(dMapIndex, buf);
     return flipBitInBuf(dMapByteIndex, buf, dMapIndex);;
 }
+
+/// Finds a free data block by iteration through the dMap. Sets bit to 1 in dMap
+/// \return address of found data block, -ENOSPC on failure
 index_t Superblock::getFreeDataBlockNo() {
     char buf [BLOCK_SIZE] = {};
     for (int dMapIndex = D_MAP_INDEX; dMapIndex < this->i_map_index; dMapIndex++) {
@@ -198,14 +232,18 @@ index_t Superblock::getFreeDataBlockNo() {
             }
         }
     }
-    return -1;
+    return -ENOMEM;
 }
 
 
-
+/// Gets blockDevice
+/// \return blockDevice pointer
 BlockDevice* Superblock::getBlockDevice() {
     return this->blockDevice;
 }
+
+/// Gets free Inode index by iterating through iMap
+/// \return index of new Inode, -ENOSPC on failure
 int Superblock::getFreeInodeIndex() {
     char buf [BLOCK_SIZE] = {};
     this->blockDevice->read(this->getIMapIndex(), buf);
@@ -215,14 +253,22 @@ int Superblock::getFreeInodeIndex() {
             return (ret < 0 ? ret : indexBit);
         }
     }
-    return -EINVAL;
+    return -ENOSPC;
 }
 
+/// Flips a bit in the given buffer at a given index and saves it to a blockDevice
+/// \param index [in] index of the fliped bit (0 - 4095)
+/// \param buf [in] buffer where the bit is to be flipped
+/// \param mapIndex [in] block number of map where it is to be saved in blockDevice
+/// \return 0 on success, -ERRNO on failure
 int Superblock::flipBitInBuf(int index, char* buf, int mapIndex) {
     buf[index >> BYTE_BITS] ^= 1 <<  (index % BYTE_SIZE);
     return this->blockDevice->write(mapIndex,  buf);
 }
 
+/// Sets blockDevice pointer
+/// \param pBlockDevice [in] blockDevice pointer to be saved
+/// \return 0 on success
 int Superblock::setBlockDevice(BlockDevice *pBlockDevice) {
     this->blockDevice = pBlockDevice;
     return 0;

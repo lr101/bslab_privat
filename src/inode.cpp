@@ -31,7 +31,7 @@ Inode::~Inode() {
 
 /// Change the path to the file.
 /// \param name [in] New path to file.
-/// \returns 0 on success, -EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
+/// \return 0 on success, -EINVAL If the length of the file path exceeds NAME_LENGTH from myfs-structs.h.
 int Inode::setName(const char *name) {
     int nameLength = std::strlen(name) + 1;
     if (nameLength > NAME_LENGTH) return -EINVAL;
@@ -42,7 +42,7 @@ int Inode::setName(const char *name) {
 
 /// Change the size of the data block.
 /// \param size [in] New data size.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setSize(off_t size) {
     if (size < 0) return -EINVAL;
     if (this->size > size) {
@@ -57,6 +57,14 @@ int Inode::setSize(off_t size) {
     return 0;
 }
 
+
+/// get the amount of data blocks by the amount of bytes
+/// \param bytes [in] bytes
+/// ex.: 
+/// 0 Bytes -> 0 block
+/// 1 - 512 Bytes -> 1 block
+/// 513 - 1024 Bytes -> 2 blocks
+/// \return amount of blocks 
 index_t Inode::getBlockAmount(off_t bytes) {
     return (bytes >> 9) + ((bytes % BLOCK_SIZE) != 0 ? 1 : 0); //9 -> 512 = 2^9; 512 - 1 -> 511 = 0x1FF
 }
@@ -64,7 +72,7 @@ index_t Inode::getBlockAmount(off_t bytes) {
 
 /// Change the user identification.
 /// \param uid [in] New user id.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setUserID(uid_t uid) {
     this->uid = uid;
     setCTime();
@@ -73,7 +81,7 @@ int Inode::setUserID(uid_t uid) {
 
 /// Change the group identification.
 /// \param gid [in] New group id.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setGroupID(gid_t gid) {
     this->gid = gid;
     setCTime();
@@ -82,7 +90,7 @@ int Inode::setGroupID(gid_t gid) {
 
 /// Change the permissions for file access.
 /// \param mode [in] New permissions.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setMode(mode_t mode) {
     this->mode = mode;
     setCTime();
@@ -90,28 +98,28 @@ int Inode::setMode(mode_t mode) {
 }
 
 /// Update the time of last access to current time.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setATime() {
     this->atime = std::time(nullptr);
     return 0;
 }
 
 /// Update the time of last change to current time.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setMTime() {
     this->mtime = std::time(nullptr);
     return 0;
 }
 
 /// Update the time of last status change to current time.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::setCTime() {
     this->ctime = std::time(nullptr);
     return 0;
 }
 
 /// Open the file.
-/// \returns 0 on success, -EINVAL If the file is already open.
+/// \return 0 on success, -EINVAL If the file is already open.
 int Inode::setOpen() {
     if (this->open) return -EINVAL;
     this->open = true;
@@ -120,7 +128,7 @@ int Inode::setOpen() {
 }
 
 /// Close the file.
-/// \returns 0 on success, -EINVAL If the file is already closed.
+/// \return 0 on success, -EINVAL If the file is already closed.
 int Inode::setClose() {
     if (!this->open) return -EBADF;
     this->open = false;
@@ -129,7 +137,7 @@ int Inode::setClose() {
 
 /// Get the file path.
 /// \param [out] name pointer containing file name
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getName(char *name) {
     std::strcpy(name, this->name);
     return 0;
@@ -137,7 +145,7 @@ int Inode::getName(char *name) {
 
 /// Get the data size.
 /// \param [out] size pointer containing file size
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getSize(off_t* size) {
     *size = this->size;
     return 0;
@@ -145,7 +153,7 @@ int Inode::getSize(off_t* size) {
 
 /// Get the user id.
 /// \param [out] uid pointer containing user identification
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getUserID(uid_t* uid) {
     *uid = this->uid;
     return 0;
@@ -153,7 +161,7 @@ int Inode::getUserID(uid_t* uid) {
 
 /// Get the group id.
 /// \param [out] gid pointer containing group identification
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getGroupID(gid_t* gid) {
     *gid = this->gid;
     return 0;
@@ -161,7 +169,7 @@ int Inode::getGroupID(gid_t* gid) {
 
 /// Get the permissions for file access.
 /// \param [out] mode pointer containing user mode
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getMode(mode_t* mode) {
     *mode = this-> mode;
     return 0;
@@ -169,7 +177,7 @@ int Inode::getMode(mode_t* mode) {
 
 /// Get the time of last access.
 /// \param [out] atime pointer containing time of last access
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getATime(std::time_t* atime) {
     *atime = this->atime;
     return 0;
@@ -177,7 +185,7 @@ int Inode::getATime(std::time_t* atime) {
 
 /// Get the time of last change.
 /// \param [out] mtime pointer containing time of last change
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getMTime(std::time_t* mtime) {
     *mtime = this->mtime;
     return 0;
@@ -185,14 +193,14 @@ int Inode::getMTime(std::time_t* mtime) {
 
 /// Get the time of last status change.
 /// \param [out] ctime pointer containing last status change
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getCTime(std::time_t* ctime) {
     *ctime = this->ctime;
     return 0;
 }
 
 /// Get whether the file is open.
-/// \returns Boolean value if file was already opened.
+/// \return Boolean value if file was already opened.
 bool Inode::isOpen() {
     return this->open;
 }
@@ -201,7 +209,7 @@ bool Inode::isOpen() {
 /// \param size [in] Size of the new data.
 /// \param data [in] Pointer to the new data.
 /// \param offset [in] Offset to the location to write the data to.
-/// \returns 0 on success, -EINVAL If size negative, -EBADF If file is not open
+/// \return 0 on success, -EINVAL If size negative, -EBADF If file is not open
 int Inode::write(off_t size, const char* data, off_t offset) {
     if (!this->open) return -EBADF;
     if (size < 0) return -EINVAL;
@@ -232,10 +240,12 @@ int Inode::write(off_t size, const char* data, off_t offset) {
     return size;
 }
 
-/// Get a pointer to the data with offset.
+/// \brief Read from BlockDevice
+///
+/// getBlockList with the given size and offset. Writes data from BlockDevice to char pointer
 /// \param offset [in] Offset from the beginning of the data.
 /// \param data [out] Pointer to the requested data.
-/// \returns 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
+/// \return 0 on success, -EINVAL If offset is greater than existing data size, -EBADF If file is not open
 int Inode::getData(off_t offset, char *data, off_t size) {
     if (!this->open) { return -EBADF; }
 
@@ -265,7 +275,7 @@ int Inode::getData(off_t offset, char *data, off_t size) {
 }
 /// Get the metadata of a file (user & group id, modification times, permissions, ...).
 /// \param [out] statbuf Structure containing the meta data, for details type "man 2 stat" in a terminal.
-/// \returns 0 on success
+/// \return 0 on success
 int Inode::getMetadata(struct stat *statbuf) {
     getUserID(&statbuf->st_uid);
     getGroupID(&statbuf->st_gid);
@@ -277,6 +287,15 @@ int Inode::getMetadata(struct stat *statbuf) {
     return 0;
 }
 
+
+/// \brief Get address of requested data
+/// 
+/// Takes the given size and offset to iterate through the inode data-pointer trees
+/// saves the addresses in blockList
+/// \param size [in] size of requested data in byte
+/// \param offset [in] offset to requested data in byte
+/// \param blockList [out] vector of datablock addresses
+/// \return 0 on success, -EINVAL when no pointer is available
 int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockList) {
     if (size < 0 || size + offset > ((this->size >> 12) + 1) << 12) return -EINVAL;
     index_t startBlockIndex = offset / BLOCK_SIZE;
@@ -308,17 +327,28 @@ int Inode::getBlockList(off_t size, off_t offset, std::vector<index_t>* blockLis
     return ret;
 }
 
-size_t Inode::getBlock(int index) {
+
+///Gets the address of a data-pointer
+///\param index [in] index of block array
+///\return the requested address
+index_t Inode::getBlock(int index) {
     if (index < 0 && index >= N_BLOCKS) return -EINVAL;
     return this->block[index];
 }
 
+///Sets an address of a data-pointer
+///\param index [in] index of block array
+///\param blockNo [in] address to be saved
+///\return 0 on success
 int Inode::setBlockPointer(int index, index_t blockNo) {
     if (index < 0 && index >= N_BLOCKS) return -EINVAL;
     this->block[index] = blockNo;
     return 0;
 }
 
+///Sets superblock pointer
+///\param s_block [in] new superblock pointer
+///\return 0 on success
 int Inode::setSuperblock(Superblock* s_block) {
     this->s_block = s_block;
     return 0;

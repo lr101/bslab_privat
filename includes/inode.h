@@ -73,7 +73,7 @@ public:
     int getData(off_t offset, char *data, off_t size);
     int getMetadata(struct stat *statbuf);
 
-    size_t getBlock(int);
+    index_t getBlock(int);
     int setBlockPointer(int, index_t);
 };
 
