@@ -28,7 +28,7 @@ size_t Superblock::calImapSize (size_t i_node_num) {
 /// \param size [in] dMap + data size
 /// \return size of dMap
 size_t Superblock::calDmapSize (size_t size) {
-    return static_cast<size_t>(ceil(static_cast<double>(size) / static_cast<double>((BYTE_SIZE * BLOCK_SIZE + 1))));    //Bo ja tak powiedzialem. Kurwa.
+    return static_cast<size_t>(ceil(static_cast<double>(size) / static_cast<double>((BYTE_SIZE * BLOCK_SIZE + 1))));
 }
 
 /// Gets size of the complete blockDevice in the number of blocks

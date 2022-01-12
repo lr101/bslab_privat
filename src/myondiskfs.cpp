@@ -39,6 +39,7 @@ MyOnDiskFS::MyOnDiskFS() : MyFS() {
 MyOnDiskFS::~MyOnDiskFS() {
     // free block device object
     delete this->blockDevice;
+    delete this->s_block;
     for (auto const& item : files) {
         delete item.second->inode;
     }
@@ -53,9 +54,6 @@ MyOnDiskFS::~MyOnDiskFS() {
 /// \param [in] mode Permissions for file access.
 /// \param [in] dev Can be ignored.
 /// \return 0 on success, -ERRNO on failure.
-
-
-
 int MyOnDiskFS::fuseMknod(const char *path, mode_t mode, dev_t dev) {
     LOGM();
     LOGF("Attributes: path=%s, mode=%u", path, mode);
@@ -127,20 +125,22 @@ int MyOnDiskFS::fuseUnlink(const char *path) {
 int MyOnDiskFS::fuseRename(const char *path, const char *newpath) {
     LOGM();
     LOGF("Attributes: path=%s, newpath=%s", path, newpath);
-
+    int ret;
     auto itPath = this->files.find(path);
-
     if (itPath != this->files.end()) {
-        auto const value = std::move(itPath->second);
-        this->files.erase(itPath);
-        std::string newPathString = std::string(newpath);
-        this->files.insert({newPathString, std::move(value)});
-        InodePointer* ip = this->files.find(newpath)->second;
-        ip->inode->setName(newpath); // TODO: exception handling
-        RETURN(writeInode(ip));
+        ret = itPath->second->inode->setName(newpath);
+        if (ret == 0) {
+            auto const value = std::move(itPath->second);
+            this->files.erase(itPath);
+            std::string newPathString = std::string(newpath);
+            this->files.insert({newPathString, std::move(value)});
+            InodePointer* ip = this->files.find(newpath)->second;
+            ret = writeInode(ip);
+        }
     } else {
-        RETURN(-ENOENT);
+        ret = -ENOENT;
     }
+    RETURN(ret);
 }
 
 /// @brief Get file meta data.
